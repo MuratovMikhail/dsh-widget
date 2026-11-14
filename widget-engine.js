@@ -484,6 +484,11 @@ function applyRecord(s, r) {
         s.pendingQuestion = true
         s.pendingQuestionText = questionText(d.arguments)
       }
+      if (d.name === 'exit_plan_mode') {
+        // DSH показывает план и ждёт «Утвердить» / «Запросить изменения».
+        // Пока tool/result не пришёл, это ожидание подтверждения, а не работа.
+        s.pendingApproval = { tool: '', detail: '' }
+      }
       if (d.name === 'todo_write') {
         // План агента: сколько пунктов сделано из скольких.
         try {
@@ -521,6 +526,9 @@ function applyRecord(s, r) {
         if (s.tool.name === 'ask_user_question') {
           s.pendingQuestion = false
           s.pendingQuestionText = ''
+        }
+        if (s.tool.name === 'exit_plan_mode') {
+          s.pendingApproval = null
         }
       }
       s.lastToolResultAt = time
