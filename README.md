@@ -39,7 +39,7 @@ Author: **Mikhail Muratov**.
   "Done": it says "Subagents at work", shows their number and what the most recent one is doing.
 - **Balance** — an optional amount in the header; below 5 units it is highlighted in amber.
 - **Completion sound** — a quiet sound; on error the system error sound plays. There are no pop-up windows.
-- **Tray icon** with a status color and a menu.
+- **Tray icon** with a menu; the icon is static and the current state is in its tooltip.
 - **Only when relevant** — the widget is visible only when there is work, a wait, subagents, or a recent "Done";
   when everything is finished and viewed, it hides and comes back on new work.
 
@@ -112,10 +112,8 @@ and the plugin can be installed later: `tools\install-plugin.ps1`.
 | Right-click the tray | "Show/Hide widget", "Open DeepSeek Harness", "Settings…", "About", "Refresh balance", "Exit" |
 | Double-click the tray | open DeepSeek Harness |
 
-![Tray icon](docs/en/preview-tray.png)
-
-The tray icon is the branded "D" with an orbit, and a colored dot in the corner shows the state: blue — working,
-purple — subagents, amber — waiting for an answer, green — done, red — error, gray — idle.
+The tray icon is the branded "D". It does not change color or shape; hover over it to see the current
+state in the tooltip. The widget itself remains the primary place for the full status.
 
 > **The tray icon.** By default Windows 10/11 tucks new icons into the "hidden" area — under the `^` arrow by the clock.
 > If you cannot see the icon, click `^` or enable it in "Settings → Personalization → Taskbar →
@@ -380,7 +378,7 @@ Invoke-RestMethod http://127.0.0.1:45871/status | ConvertTo-Json -Depth 6
 | `widget-engine.js` | reads session logs, serves the state over HTTP (Node) |
 | `widget-ui.ps1` | widget, tray, sound (PowerShell + WinForms) |
 | `assets\DSHWidget.ico` | the branded icon: shortcuts, settings window, installer |
-| `assets\DSHWidget-Tray.ico` | simplified tray icon (state — a colored dot) |
+| `assets\DSHWidget-Tray.ico` | simplified static tray icon |
 | `assets\notify.wav` | built-in completion sound |
 | `start-widget.vbs` | launches without a console window |
 | `install.ps1` | shortcuts in the Start menu and on the desktop, autostart |
@@ -394,7 +392,6 @@ Invoke-RestMethod http://127.0.0.1:45871/status | ConvertTo-Json -Depth 6
 | `tools\test-content.js` | question, approval, error, plan, incremental reads, CORS |
 | `tools\make-previews.ps1` | re-captures `docs\<lang>\preview-*.png` |
 | `tools\make-states-sheet.ps1` | a single contact sheet `docs\<lang>\preview-states.png` with all states |
-| `tools\make-tray-preview.ps1` | rebuilds `docs\preview-tray.png` |
 | `tools\audit-release.ps1` | checks the archive for personal data |
 | `tools\fix-bom.ps1` | re-saves scripts as UTF-8 with BOM |
 | `tools\stop-widget.ps1` | stops the widget and the engine via `runtime.json` |

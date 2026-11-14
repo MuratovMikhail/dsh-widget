@@ -33,7 +33,7 @@
 - **子代理**：如果父回合已结束但子会话仍在运行，组件不会显示“完成”，而是显示“子代理正在工作”、子代理数量，以及最新一个子代理正在做什么。
 - **余额**：顶栏中的可选金额；低于 5 个单位时以琥珀色高亮。
 - **完成提示音**：轻柔的声音；出错时播放系统错误提示音。没有弹窗。
-- **托盘图标**：带状态颜色和菜单。
+- **托盘图标**：带菜单；图标固定，状态显示在提示中。
 - **只在需要时出现**：仅当有工作、等待、子代理或刚出现的“完成”时，组件才可见；当一切结束并查看完毕，它会隐藏，并在有新工作时重新出现。
 
 组件状态：
@@ -101,9 +101,8 @@
 | 右键点击托盘 | “显示/隐藏组件”、“打开 DeepSeek Harness”、“设置…”、“关于”、“刷新余额”、“退出” |
 | 双击托盘 | 打开 DeepSeek Harness |
 
-![托盘图标](docs/zh-CN/preview-tray.png)
-
-托盘图标是带轨道环的品牌“D”，角落的彩色圆点表示状态：蓝色表示正在工作，紫色表示子代理，琥珀色表示等待回答，绿色表示完成，红色表示错误，灰色表示空闲。
+托盘图标是固定的品牌“D”，不会改变颜色或形状；将鼠标悬停在图标上，可在提示中看到当前状态。
+完整状态仍以组件卡片为准。
 
 > **托盘图标。** Windows 10/11 默认会把新图标收进“隐藏”区域，也就是时钟旁的 `^` 箭头下。
 > 如果看不到图标，请点击 `^`，或前往“设置 → 个性化 → 任务栏 →
@@ -315,7 +314,7 @@ Invoke-RestMethod http://127.0.0.1:45871/status | ConvertTo-Json -Depth 6
 | `widget-engine.js` | 读取会话日志，通过 HTTP 提供状态（Node） |
 | `widget-ui.ps1` | 组件、托盘、声音（PowerShell + WinForms） |
 | `assets\DSHWidget.ico` | 品牌图标：快捷方式、设置窗口、安装程序 |
-| `assets\DSHWidget-Tray.ico` | 简化的托盘图标（状态为彩色圆点） |
+| `assets\DSHWidget-Tray.ico` | 简化的固定托盘图标 |
 | `assets\notify.wav` | 内置完成提示音 |
 | `start-widget.vbs` | 无控制台窗口启动 |
 | `install.ps1` | 创建“开始”菜单和桌面快捷方式、开机启动 |
@@ -329,7 +328,6 @@ Invoke-RestMethod http://127.0.0.1:45871/status | ConvertTo-Json -Depth 6
 | `tools\test-content.js` | 问题、确认、错误、计划、增量读取、CORS |
 | `tools\make-previews.ps1` | 重新截取 `docs\<lang>\preview-*.png` |
 | `tools\make-states-sheet.ps1` | 生成包含所有状态的单张总览图 `docs\<lang>\preview-states.png` |
-| `tools\make-tray-preview.ps1` | 重新生成 `docs\preview-tray.png` |
 | `tools\audit-release.ps1` | 检查压缩包中是否含有个人数据 |
 | `tools\fix-bom.ps1` | 将脚本重新保存为带 BOM 的 UTF-8 |
 | `tools\stop-widget.ps1` | 根据 `runtime.json` 停止组件和引擎 |

@@ -2399,65 +2399,27 @@ function Get-IconFrameBitmap([string]$path, [int]$size) {
     return $null
 }
 
-function New-TrayIconBitmap([System.Drawing.Color]$accent) {
-    # Фирменная иконка из assets + точка состояния в углу. Без файла — запасная плитка.
-    $base = $script:trayBase
-    if (-not $base) {
-        $bmp = New-Object System.Drawing.Bitmap(32, 32)
-        $g = [System.Drawing.Graphics]::FromImage($bmp)
-        $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-        $g.Clear([System.Drawing.Color]::Transparent)
-        $path = New-RoundedPath 2 2 28 28 8
-        $brush = New-Object System.Drawing.SolidBrush($accent)
-        $g.FillPath($brush, $path)
-        $path.Dispose(); $brush.Dispose()
-        $white = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
-        $g.FillRectangle($white, 9, 9, 14, 3)
-        $g.FillRectangle($white, 9, 15, 14, 3)
-        $g.FillRectangle($white, 9, 21, 9, 3)
-        $white.Dispose(); $g.Dispose()
-        return $bmp
+# Фирменная иконка трея: одна статичная, без точек состояния.
+$script:trayIcon = $null
+try {
+    $trayIconPath = Join-Path $scriptDir 'assets\DSHWidget-Tray.ico'
+    if (Test-Path -LiteralPath $trayIconPath) {
+        $script:trayIcon = New-Object System.Drawing.Icon($trayIconPath)
+        Write-WidgetLog 'tray icon: static branded'
     }
-
-    $size = $base.Width
-    $copy = New-Object System.Drawing.Bitmap($size, $size)
-    $g = [System.Drawing.Graphics]::FromImage($copy)
-    $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-    $g.DrawImage($base, 0, 0, $size, $size)
-    $dot = [int][math]::Round($size * 0.30)
-    $ring = [math]::Max(1.0, $size * 0.09)
-    $x = $size - $dot
-    $y = $size - $dot
-    $g.FillEllipse((New-Object System.Drawing.SolidBrush($script:clrBg)), ($x - $ring), ($y - $ring), ($dot + $ring * 2), ($dot + $ring * 2))
-    $g.FillEllipse((New-Object System.Drawing.SolidBrush($accent)), $x, $y, $dot, $dot)
-    $g.Dispose()
-    return $copy
+} catch {
+    $script:trayIcon = $null
 }
-
-# Фирменные иконки из assets: кадр 32x32 для трея и большая для ярлыков/окна.
-$script:trayBase = Get-IconFrameBitmap (Join-Path $scriptDir 'assets\DSHWidget-Tray.ico') 32
-if (-not $script:trayBase) { $script:trayBase = Get-IconFrameBitmap (Join-Path $scriptDir 'assets\DSHWidget-Tray.ico') 48 }
-if ($script:trayBase) { Write-WidgetLog ('tray icon: branded ' + $script:trayBase.Width + 'px') } else { Write-WidgetLog 'tray icon: fallback' }
+if (-not $script:trayIcon) {
+    $script:trayIcon = [System.Drawing.SystemIcons]::Application
+    Write-WidgetLog 'tray icon: fallback'
+}
+$script:trayStatus = ''
 $script:appIcon = $null
 try {
     $appIconPath = Join-Path $scriptDir 'assets\DSHWidget.ico'
     if (Test-Path -LiteralPath $appIconPath) { $script:appIcon = New-Object System.Drawing.Icon($appIconPath) }
 } catch { $script:appIcon = $null }
-
-$script:trayBmp = New-TrayIconBitmap ($script:accentByState['idle'])
-$script:trayHandle = $script:trayBmp.GetHicon()
-$script:trayIcon = [System.Drawing.Icon]::FromHandle($script:trayHandle)
-
-# Иконки для каждого состояния создаём один раз: пересоздание HICON на каждом опросе
-# утекает GDI-хэндлы.
-$script:trayIcons = @{}
-$script:trayBitmaps = @{}
-foreach ($stateKey in $script:accentByState.Keys) {
-    $bmp = New-TrayIconBitmap ($script:accentByState[$stateKey])
-    $script:trayBitmaps[$stateKey] = $bmp
-    $script:trayIcons[$stateKey] = [System.Drawing.Icon]::FromHandle($bmp.GetHicon())
-}
-$script:trayState = 'idle'
 
 # При выходе гасим движок и убираем иконку, иначе остаётся осиротевший node.exe.
 $form.Add_FormClosing({
@@ -2696,11 +2658,10 @@ function Update-Snapshot {
         elseif ($form.Visible -and $script:cardVisible -and ((Get-Date) - $script:emptySince).TotalSeconds -ge 5) { $form.Hide() }
     }
 
-    # иконка трея по состоянию (меняем только при смене состояния)
+    # Статичная иконка трея; состояние показываем только в подсказке.
     $inset = Get-StatusText $script:snap.primary $script:engineOk
-    if ($script:trayState -ne $inset.state) {
-        $script:trayState = $inset.state
-        $tray.Icon = $script:trayIcons[$inset.state]
+    if ($script:trayStatus -ne $inset.status) {
+        $script:trayStatus = $inset.status
         $tray.Text = (T 'Виджет DSH — ') + $inset.status
     }
 
