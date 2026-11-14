@@ -42,6 +42,15 @@ powershell -ExecutionPolicy Bypass -File .\tools\make-states-sheet.ps1 -Lang en
 - Keep user-facing strings in `locale/en.json`, `ru.json`, and `zh-CN.json`.
 - Do not commit `config.json`, logs, `dist/`, or generated test screenshots.
 
+## Branch model
+
+- `main` is the stable branch and is protected: pull request required, `engine-and-scripts`
+  CI must pass, force-pushes and deletions are blocked.
+- `dev` is the integration branch for the next release.
+- Create short-lived `feat/*` or `fix/*` branches from `dev`, open a pull request into `dev`,
+  then merge `dev` into `main` through a pull request.
+- Release tags are created from `main`; the tag workflow publishes the assets.
+
 ## Commit style
 
 Short imperative subject, for example:
