@@ -1,10 +1,10 @@
-; Inno Setup: установщик DSH Widget.
+﻿; Inno Setup: установщик DSH Widget.
 ; Сборка: powershell -ExecutionPolicy Bypass -File .\build-installer.ps1
 ; Требуется только на машине сборки: https://jrsoftware.org/isdl.php
 
 #define AppName "DSH Widget"
 #ifndef AppVersion
-  #define AppVersion "1.0.2"
+  #define AppVersion "1.0.3"
 #endif
 #define AppPublisher "DSH Widget"
 #define AppId "{{B7E1C0D4-5A62-4F0B-9A3E-2D7C6B1F0A55}"
@@ -103,22 +103,32 @@ begin
     else if WizardIsTaskSelected('mode_startup') then Mode := 'startup'
     else Mode := 'manual';
 
-    // Запоминаем режим (если config.json ещё нет) и задаём согласованный авто-выход.
-    Params := '-NoProfile -ExecutionPolicy Bypass -File "' +
-              ExpandConstant('{app}\tools\set-mode.ps1') + '" -Mode ' + Mode;
-    Exec('powershell.exe', Params, '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-
     if Mode = 'plugin' then
     begin
       Params := '-NoProfile -ExecutionPolicy Bypass -File "' +
                 ExpandConstant('{app}\tools\install-plugin.ps1') + '" -Quiet';
       if not Exec('powershell.exe', Params, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
-        MsgBox(ExpandConstant('{cm:PluginStartFail}'), mbInformation, MB_OK)
+      begin
+        MsgBox(ExpandConstant('{cm:PluginStartFail}'), mbInformation, MB_OK);
+        Mode := 'manual';
+      end
       else if ResultCode = 3 then
-        MsgBox(ExpandConstant('{cm:PluginNoDsh}'), mbInformation, MB_OK)
+      begin
+        MsgBox(ExpandConstant('{cm:PluginNoDsh}'), mbInformation, MB_OK);
+        Mode := 'manual';
+      end
       else if ResultCode <> 0 then
+      begin
         MsgBox(ExpandConstant('{cm:PluginInstallCode}') + ' ' + IntToStr(ResultCode), mbInformation, MB_OK);
+        Mode := 'manual';
+      end;
     end;
+
+    // Режим записываем только после успешной установки плагина:
+    // иначе config.json говорил бы «plugin», а профиль DSH — «manual».
+    Params := '-NoProfile -ExecutionPolicy Bypass -File "' +
+              ExpandConstant('{app}\tools\set-mode.ps1') + '" -Mode ' + Mode;
+    Exec('powershell.exe', Params, '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   end;
 end;
 function InitializeSetup: Boolean;

@@ -69,7 +69,7 @@ More widget states (demo data, dark theme):
 
 ### Installer (recommended)
 
-`DSHWidget-Setup-1.0.2.exe` (about 3 MB) — no administrator rights, installs to
+`DSHWidget-Setup-1.0.3.exe` (about 3 MB) — no administrator rights, installs to
 `%LOCALAPPDATA%\Programs\DSH Widget`.
 
 1. Run it; if SmartScreen warns "Unknown publisher", click "More info" → "Run anyway"
@@ -381,8 +381,8 @@ Invoke-RestMethod http://127.0.0.1:45871/status | ConvertTo-Json -Depth 6
 | `assets\notify.wav` | built-in completion sound |
 | `start-widget.vbs` | launches without a console window |
 | `install.ps1` | shortcuts in the Start menu and on the desktop, autostart |
-| `release.ps1` | builds `dsh-widget-1.0.2.zip` without personal data |
-| `build-installer.ps1`, `installer.iss` | builds `dist\DSHWidget-Setup-1.0.2.exe` (requires Inno Setup) |
+| `release.ps1` | builds `dsh-widget-1.0.3.zip` without personal data |
+| `build-installer.ps1`, `installer.iss` | builds `dist\DSHWidget-Setup-1.0.3.exe` (requires Inno Setup) |
 | `plugin-src\`, `plugin\` | the service bridge plugin `dsh-widget-bridge` |
 | `tools\status.ps1` | human-readable engine status |
 | `tools\test-subagents.js` | subagent logic test on a synthetic DSH_HOME |
@@ -419,7 +419,7 @@ powershell -ExecutionPolicy Bypass -File .\release.ps1 -Version 1.0
 powershell -ExecutionPolicy Bypass -File .\tools\audit-release.ps1
 
 # installer
-powershell -ExecutionPolicy Bypass -File .\build-installer.ps1 -Version 1.0.2
+powershell -ExecutionPolicy Bypass -File .\build-installer.ps1 -Version 1.0.3
 ```
 
 `config.json`, logs, `selftest-*.png`, `dist/`, `_backup/` must not end up in the archive/repository.
@@ -445,7 +445,7 @@ team roles, build provenance, and the manual approval process. The privacy
 policy is in [PRIVACY.md](PRIVACY.md); third-party assets are listed in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-The published `1.0.2` installer is not code-signed yet; the first SignPath-signed build will follow.
+The published `1.0.3` installer is not code-signed yet; the first SignPath-signed build will follow.
 
 ## Contributing
 
@@ -461,7 +461,7 @@ git config --global user.email "<email>"
 
 git init -b main
 git add .
-git commit -m "DSH Widget 1.0.2"
+git commit -m "DSH Widget 1.0.3"
 ```
 
 Create an empty repository `dsh-widget` on GitHub, then:
@@ -474,10 +474,10 @@ git push -u origin main
 Publishing is automatic on a version tag:
 
 ```powershell
-git tag -a v1.0.2 -m "DSH Widget 1.0.2"
-git push origin v1.0.2
+git tag -a v1.0.3 -m "DSH Widget 1.0.3"
+git push origin v1.0.3
 ```
 
-`.github/workflows/release.yml` builds `dsh-widget-1.0.2.zip`, `DSHWidget-Setup-1.0.2.exe`, and
+`.github/workflows/release.yml` builds `dsh-widget-1.0.3.zip`, `DSHWidget-Setup-1.0.3.exe`, and
 `SHA256SUMS.txt`, then creates the GitHub Release. No manual asset upload and no `gh` are needed.
 The CI workflow runs the engine tests and an encoding check on every push.
