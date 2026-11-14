@@ -46,9 +46,6 @@ if ($LASTEXITCODE -ne 0) { throw 'не удалось снять окно нас
 Copy-Item -LiteralPath (Join-Path $Root 'selftest-settings.png') -Destination (Join-Path $OutDir 'preview-settings.png') -Force
 Write-Output (Join-Path $OutDir 'preview-settings.png')
 
-# Иконка трея от языка не зависит — просто копируем готовый кадр.
-$tray = Join-Path $Root 'docs\preview-tray.png'
-if (Test-Path -LiteralPath $tray) { Copy-Item -LiteralPath $tray -Destination (Join-Path $OutDir 'preview-tray.png') -Force }
 
 # Временные снимки в корне не нужны.
 Get-ChildItem -LiteralPath $Root -Filter 'selftest-*.png' -File | Remove-Item -Force
