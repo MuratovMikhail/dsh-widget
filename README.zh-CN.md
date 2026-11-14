@@ -368,6 +368,16 @@ powershell -ExecutionPolicy Bypass -File .\build-installer.ps1 -Version 1.0.0
 
 ---
 
+## 代码签名政策
+
+免费代码签名由 [SignPath.io](https://about.signpath.io) 提供，证书由
+[SignPath Foundation](https://signpath.org) 签发。
+
+签名对象、团队角色、构建来源和人工审批流程见
+[CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md)。隐私政策见
+[PRIVACY.md](PRIVACY.md)，第三方素材见
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
 ## 参与贡献
 
 本地检查和 PR 规则见 [CONTRIBUTING.md](CONTRIBUTING.md)。安全问题请通过

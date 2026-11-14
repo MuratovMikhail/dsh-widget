@@ -437,6 +437,16 @@ powershell -ExecutionPolicy Bypass -File .\build-installer.ps1 -Version 1.0.0
 
 ---
 
+## Политика подписи кода
+
+Бесплатная подпись предоставлена [SignPath.io](https://about.signpath.io),
+сертификат — [SignPath Foundation](https://signpath.org).
+
+См. [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md): что подписывается, роли,
+происхождение сборки и ручное подтверждение. Политика конфиденциальности —
+в [PRIVACY.md](PRIVACY.md), сторонние материалы — в
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
 ## Участие
 
 См. [CONTRIBUTING.md](CONTRIBUTING.md) — локальные проверки и правила PR. Об уязвимостях
