@@ -1,10 +1,10 @@
-﻿; Inno Setup: установщик DSH Widget.
+; Inno Setup: установщик DSH Widget.
 ; Сборка: powershell -ExecutionPolicy Bypass -File .\build-installer.ps1
 ; Требуется только на машине сборки: https://jrsoftware.org/isdl.php
 
 #define AppName "DSH Widget"
 #ifndef AppVersion
-  #define AppVersion "1.0.0"
+  #define AppVersion "1.0.1"
 #endif
 #define AppPublisher "DSH Widget"
 #define AppId "{{B7E1C0D4-5A62-4F0B-9A3E-2D7C6B1F0A55}"
@@ -88,7 +88,7 @@ function DshNodeFound: Boolean;
 begin
   // Проверяем оба известных места, где DSH держит node.exe.
   Result := FileExists(ExpandConstant('{localappdata}\Programs\DeepSeek Harness\resources\runtime\primary-runtime\dependencies\node\bin\node.exe'))
-         or FileExists(ExpandConstant('{userprofile}\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe'));
+         or FileExists(GetEnv('USERPROFILE') + '\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe');
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
