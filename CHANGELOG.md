@@ -2,6 +2,14 @@
 
 # Changelog
 
+## 1.0.3 — 2026-11-14
+
+### Fixed
+
+- The installer now writes `launchMode=plugin` only after the bridge plugin is actually present in the DSH profile. If the plugin cannot be installed, the effective mode is rolled back to manual instead of leaving `config.json` and the real profile out of sync.
+- DSH is discovered through the running process, uninstall registry, `PATH`, `DSH_HOME`, and `%USERPROFILE%\.dsh`, not only `%LOCALAPPDATA%\Programs`.
+- "Open DeepSeek Harness" and the settings plugin check now use the same portable-install discovery, so a folder-based DSH can be opened and detected correctly.
+
 ## 1.0.2 — 2026-11-14
 
 ### Fixed

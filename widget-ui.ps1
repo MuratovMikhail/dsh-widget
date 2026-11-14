@@ -31,7 +31,7 @@ $ErrorActionPreference = 'Stop'
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $script:configPath = Join-Path $scriptDir 'config.json'
 $script:enginePath = Join-Path $scriptDir 'widget-engine.js'
-$script:appVersion = '1.0.2'
+$script:appVersion = '1.0.3'
 $script:author = 'Муратов Михаил'
 # Заполним, когда появится доступ к GitHub (и будет известен точный URL репозитория).
 $script:repoUrl = 'https://github.com/MuratovMikhail/dsh-widget'
@@ -1178,7 +1178,7 @@ function New-DemoSnapshot([string]$demoState) {
     }
 
     $snap = [ordered]@{
-        ok = $true; version = '1.0.2'; now = $nowMs; dshHome = 'C:\dsh-home'
+        ok = $true; version = '1.0.3'; now = $nowMs; dshHome = 'C:\dsh-home'
         sessionsTracked = 1 + $demoSessions.Count; workingCount = $workingCount; activeCount = $activeCount
         primary = $primary; pinnedId = $null; lastCompletion = $null; sessions = $demoSessions
         balance = @{ enabled = $true; ok = $true; source = 'platform'; currency = 'CNY'; symbol = '¥'; amount = 42.00; bonus = 0 }
@@ -1506,12 +1506,78 @@ function Focus-DshWindowForSession([string]$sessionTitle) {
 }
 # ------------------------------------------------------------------ DSH
 
+function Get-DshHome {
+    $candidates = New-Object System.Collections.Generic.List[string]
+    if ($env:DSH_HOME) { [void]$candidates.Add($env:DSH_HOME) }
+    if ($env:USERPROFILE) { [void]$candidates.Add((Join-Path $env:USERPROFILE '.dsh')) }
+
+    foreach ($name in @('DeepSeek Harness.exe', 'dsh.exe')) {
+        try {
+            $procs = Get-CimInstance Win32_Process -Filter ("Name='" + $name + "'") -ErrorAction SilentlyContinue
+            foreach ($p in @($procs)) {
+                if (-not $p -or -not $p.ExecutablePath) { continue }
+                $exeDir = Split-Path -Parent $p.ExecutablePath
+                [void]$candidates.Add((Join-Path $exeDir '.dsh'))
+                [void]$candidates.Add((Join-Path (Split-Path -Parent $exeDir) '.dsh'))
+            }
+        } catch { }
+    }
+
+    foreach ($root in @(
+        'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
+        'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
+        'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
+    )) {
+        try {
+            Get-ItemProperty $root -ErrorAction SilentlyContinue |
+                Where-Object { $_.DisplayName -like '*DeepSeek Harness*' -and $_.InstallLocation } |
+                ForEach-Object { [void]$candidates.Add((Join-Path $_.InstallLocation '.dsh')) }
+        } catch { }
+    }
+
+    foreach ($home in ($candidates | Select-Object -Unique)) {
+        if (Test-Path -LiteralPath (Join-Path $home 'profiles\desktop')) { return $home }
+    }
+    return $null
+}
+
 function Get-DshExe {
-    $candidates = @(
-        (Join-Path $env:LOCALAPPDATA 'Programs\DeepSeek Harness\DeepSeek Harness.exe'),
-        (Join-Path ${env:ProgramFiles} 'DeepSeek Harness\DeepSeek Harness.exe')
-    )
-    foreach ($c in $candidates) { if (Test-Path -LiteralPath $c) { return $c } }
+    foreach ($name in @('DeepSeek Harness.exe', 'dsh.exe')) {
+        try {
+            $procs = Get-CimInstance Win32_Process -Filter ("Name='" + $name + "'") -ErrorAction SilentlyContinue
+            foreach ($p in @($procs)) {
+                if ($p -and $p.ExecutablePath -and (Test-Path -LiteralPath $p.ExecutablePath)) { return $p.ExecutablePath }
+            }
+        } catch { }
+    }
+
+    $candidates = New-Object System.Collections.Generic.List[string]
+    [void]$candidates.Add((Join-Path $env:LOCALAPPDATA 'Programs\DeepSeek Harness\DeepSeek Harness.exe'))
+    [void]$candidates.Add((Join-Path ${env:ProgramFiles} 'DeepSeek Harness\DeepSeek Harness.exe'))
+
+    foreach ($root in @(
+        'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
+        'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
+        'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
+    )) {
+        try {
+            Get-ItemProperty $root -ErrorAction SilentlyContinue |
+                Where-Object { $_.DisplayName -like '*DeepSeek Harness*' } |
+                ForEach-Object {
+                    if ($_.InstallLocation) {
+                        [void]$candidates.Add((Join-Path $_.InstallLocation 'DeepSeek Harness.exe'))
+                    }
+                    if ($_.DisplayIcon) {
+                        $icon = ([string]$_.DisplayIcon).Split(',')[0].Trim('"')
+                        if ($icon -like '*.exe') { [void]$candidates.Add($icon) }
+                    }
+                }
+        } catch { }
+    }
+
+    foreach ($c in ($candidates | Select-Object -Unique)) {
+        if ($c -and (Test-Path -LiteralPath $c)) { return $c }
+    }
     return $null
 }
 
@@ -1604,12 +1670,13 @@ function Show-SettingsWindow {
 
     $pluginInstalled = $false
     try {
-        $dshHome = $env:DSH_HOME
-        if (-not $dshHome) { $dshHome = Join-Path $env:USERPROFILE '.dsh' }
-        $manifest = Join-Path (Join-Path (Join-Path $dshHome 'profiles') 'desktop') 'package.json'
-        if (Test-Path -LiteralPath $manifest) {
-            $pkg = Get-Content -LiteralPath $manifest -Raw -Encoding UTF8 | ConvertFrom-Json
-            $pluginInstalled = @($pkg.dsh.profile.bundles) -contains '@local/dsh-widget-bridge'
+        $dshHome = Get-DshHome
+        if ($dshHome) {
+            $manifest = Join-Path (Join-Path (Join-Path $dshHome 'profiles') 'desktop') 'package.json'
+            if (Test-Path -LiteralPath $manifest) {
+                $pkg = Get-Content -LiteralPath $manifest -Raw -Encoding UTF8 | ConvertFrom-Json
+                $pluginInstalled = @($pkg.dsh.profile.bundles) -contains '@local/dsh-widget-bridge'
+            }
         }
     } catch { }
 
