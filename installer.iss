@@ -4,7 +4,7 @@
 
 #define AppName "DSH Widget"
 #ifndef AppVersion
-  #define AppVersion "1.0.1"
+  #define AppVersion "1.0.2"
 #endif
 #define AppPublisher "DSH Widget"
 #define AppId "{{B7E1C0D4-5A62-4F0B-9A3E-2D7C6B1F0A55}"
@@ -176,8 +176,8 @@ english.SelectTasksLabel2=
 [CustomMessages]
 russian.PluginStartFail=Не удалось запустить установку плагина. Виджет будет работать отдельно;%nплагин можно поставить позже из папки программы.
 english.PluginStartFail=Could not start the plugin installer. The widget will run separately;%nyou can install the plugin later from the app folder.
-russian.PluginNoDsh=Плагин не установлен: DeepSeek Harness ещё ни разу не открывали на этом компьютере.%nЗапустите DSH один раз и переустановите виджет (или выполните tools\install-plugin.ps1).
-english.PluginNoDsh=The plugin wasn't installed: DeepSeek Harness has never been opened on this computer.%nOpen DSH once and reinstall the widget (or run tools\install-plugin.ps1).
+russian.PluginNoDsh=Плагин не установлен: профиль DeepSeek Harness не найден.%nВиджет установлен; запустите DSH один раз и запустите установщик ещё раз, чтобы включить автозапуск.
+english.PluginNoDsh=The plugin wasn't installed: the DeepSeek Harness profile was not found.%nThe widget is installed; start DSH once and run the installer again to enable autostart.
 russian.PluginInstallCode=Плагин не установлен, код:
 english.PluginInstallCode=The plugin wasn't installed, code:
 russian.NodeMissing=DeepSeek Harness не найден: нет node.exe в его каталоге.%nВиджет установится, но запустится только после установки DeepSeek Harness.

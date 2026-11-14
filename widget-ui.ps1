@@ -31,7 +31,7 @@ $ErrorActionPreference = 'Stop'
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $script:configPath = Join-Path $scriptDir 'config.json'
 $script:enginePath = Join-Path $scriptDir 'widget-engine.js'
-$script:appVersion = '1.0.1'
+$script:appVersion = '1.0.2'
 $script:author = 'Муратов Михаил'
 # Заполним, когда появится доступ к GitHub (и будет известен точный URL репозитория).
 $script:repoUrl = 'https://github.com/MuratovMikhail/dsh-widget'
@@ -1178,7 +1178,7 @@ function New-DemoSnapshot([string]$demoState) {
     }
 
     $snap = [ordered]@{
-        ok = $true; version = '1.0.1'; now = $nowMs; dshHome = 'C:\dsh-home'
+        ok = $true; version = '1.0.2'; now = $nowMs; dshHome = 'C:\dsh-home'
         sessionsTracked = 1 + $demoSessions.Count; workingCount = $workingCount; activeCount = $activeCount
         primary = $primary; pinnedId = $null; lastCompletion = $null; sessions = $demoSessions
         balance = @{ enabled = $true; ok = $true; source = 'platform'; currency = 'CNY'; symbol = '¥'; amount = 42.00; bonus = 0 }
