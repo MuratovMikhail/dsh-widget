@@ -2,6 +2,13 @@
 
 # Changelog
 
+## 1.0.2 — 2026-11-14
+
+### Fixed
+
+- The installer now finds the DSH CLI in portable or non-default installations and falls back to installing the bridge plugin directly into the DSH profile. This fixes the false "DeepSeek Harness has never been opened" message when DSH is running from a folder.
+- The direct plugin install no longer depends on the CLI being under `%LOCALAPPDATA%\Programs\DeepSeek Harness`.
+
 ## 1.0.1 — 2026-11-14
 
 ### Fixed
