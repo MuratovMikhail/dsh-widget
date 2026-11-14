@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "DSH Widget card",
+    "description": "Starts the DSH Widget card together with DeepSeek Harness and stops it on exit.",
+    "detail": "README.md"
+  }
+}

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/MuratovMikhail/dsh-widget#readme
+    about: Installation, settings, limitations, and troubleshooting
+  - name: Security report
+    url: https://github.com/MuratovMikhail/dsh-widget/security/advisories/new
+    about: Report a vulnerability privately

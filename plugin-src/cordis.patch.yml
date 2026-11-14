@@ -1,0 +1,4 @@
+- insert:
+    - id: dsh-widget-bridge
+      name: '@local/dsh-widget-bridge'
+      config: {}

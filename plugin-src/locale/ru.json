@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Карточка DSH Widget",
+    "description": "Запускает карточку DSH Widget вместе с DeepSeek Harness и закрывает её при выходе.",
+    "detail": "README.md"
+  }
+}

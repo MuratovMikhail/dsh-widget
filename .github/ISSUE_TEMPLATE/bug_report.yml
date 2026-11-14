@@ -1,0 +1,70 @@
+name: Bug report
+description: Something is broken or behaves unexpectedly
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please remove personal data (usernames, paths, session titles, API keys, balances)
+        from logs and screenshots before posting.
+  - type: input
+    id: widget-version
+    attributes:
+      label: DSH Widget version
+      description: About window or config.json
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: e.g. Windows 10 22H2 x64 / Windows 11 23H2
+      placeholder: "Windows 11 23H2 x64"
+    validations:
+      required: true
+  - type: input
+    id: dsh
+    attributes:
+      label: DeepSeek Harness version
+      placeholder: "e.g. 0.2.2-rc.3"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log lines
+      description: Tail of widget.log, redacted
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I removed personal data from the report
+          required: true
+        - label: I am using the latest release
+          required: true

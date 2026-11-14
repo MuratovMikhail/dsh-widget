@@ -1,0 +1,15 @@
+# Личные данные и результаты сборки не должны попадать в репозиторий/архив.
+config.json
+widget.ico
+*.zip
+.release-tmp-*
+.test-*/
+_backup/
+*.log
+*.log.1
+# Скриншоты самотеста снимаются с рабочего стола и могут содержать личное.
+selftest-*.png
+widget.log
+dist/
+runtime.json
+*.exe

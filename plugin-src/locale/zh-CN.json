@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "DSH 组件",
+    "description": "随 DeepSeek Harness 启动 DSH 组件，并在退出时关闭。",
+    "detail": "README.md"
+  }
+}

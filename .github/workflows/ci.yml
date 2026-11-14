@@ -1,0 +1,48 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  engine-and-scripts:
+    runs-on: windows-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Проверить синтаксис движка
+        run: node --check widget-engine.js
+
+      - name: Тесты движка
+        run: |
+          node tools/test-subagents.js
+          node tools/test-selection.js
+          node tools/test-ack.js
+          node tools/test-content.js
+
+      - name: Проверить кодировку и синтаксис PowerShell
+        shell: pwsh
+        run: |
+          $failed = $false
+          foreach ($f in Get-ChildItem -Recurse -Filter *.ps1) {
+            $b = [System.IO.File]::ReadAllBytes($f.FullName)
+            if ($b.Length -lt 3 -or $b[0] -ne 0xEF -or $b[1] -ne 0xBB -or $b[2] -ne 0xBF) {
+              Write-Error "Нет UTF-8 BOM: $($f.FullName)"
+              $failed = $true
+            }
+          }
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'widget-ui.ps1'), [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            $failed = $true
+          }
+          if ($failed) { exit 1 }

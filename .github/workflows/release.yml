@@ -1,0 +1,63 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: windows-2022
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Engine syntax and tests
+        shell: pwsh
+        run: |
+          node --check widget-engine.js
+          node tools/test-subagents.js
+          node tools/test-selection.js
+          node tools/test-ack.js
+          node tools/test-content.js
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
+
+      - name: Build portable archive
+        shell: powershell
+        run: .\release.ps1 -Version 1.0
+
+      - name: Build installer
+        shell: powershell
+        run: .\build-installer.ps1 -Version 1.0.0
+
+      - name: SHA256 checksums
+        shell: powershell
+        run: |
+          $files = @('dsh-widget-1.0.zip', 'dist\DSHWidget-Setup-1.0.0.exe')
+          $rows = foreach ($f in $files) {
+            $h = Get-FileHash -LiteralPath $f -Algorithm SHA256
+            $h.Hash + '  ' + [IO.Path]::GetFileName($f)
+          }
+          [IO.File]::WriteAllLines((Join-Path $PWD 'SHA256SUMS.txt'), $rows, (New-Object Text.UTF8Encoding($false)))
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: DSH Widget 1.0.0
+          tag_name: ${{ github.ref_name }}
+          body_path: CHANGELOG.md
+          files: |
+            dsh-widget-1.0.zip
+            dist/DSHWidget-Setup-1.0.0.exe
+            SHA256SUMS.txt
