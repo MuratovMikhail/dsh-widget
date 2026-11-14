@@ -29,9 +29,6 @@ PowerShell files must be UTF-8 with BOM. The CI checks this for every `.ps1` fil
 powershell -ExecutionPolicy Bypass -File .\tools\make-previews.ps1 -Lang en
 powershell -ExecutionPolicy Bypass -File .\tools\make-previews.ps1 -Lang ru
 powershell -ExecutionPolicy Bypass -File .\tools\make-previews.ps1 -Lang zh-CN
-
-# contact sheet for one language
-powershell -ExecutionPolicy Bypass -File .\tools\make-states-sheet.ps1 -Lang en
 ```
 
 ## Pull requests

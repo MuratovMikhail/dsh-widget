@@ -55,9 +55,7 @@
 | Ошибка | красная точка с ореолом, «Остановлено», превью/причина |
 | Простой / офлайн | серая точка, «Нет активных задач» или «Нет связи с движком» |
 
-Все состояния на одном листе (демо-данные, тёмная тема):
-
-![Все состояния виджета](docs/ru/preview-states.png)
+Ещё состояния (демо-данные, тёмная тема):
 
 ![Готово](docs/ru/preview-done.png)
 ![Ждёт ответа](docs/ru/preview-waiting.png)
@@ -391,7 +389,6 @@ Invoke-RestMethod http://127.0.0.1:45871/status | ConvertTo-Json -Depth 6
 | `tools\test-ack.js` | тест «просмотрено» и снятия закрепления |
 | `tools\test-content.js` | вопрос, подтверждение, ошибка, план, инкрементальное чтение, CORS |
 | `tools\make-previews.ps1` | пересъёмка `docs\<lang>\preview-*.png` |
-| `tools\make-states-sheet.ps1` | один контактный лист `docs\<lang>\preview-states.png` со всеми состояниями |
 | `tools\audit-release.ps1` | проверка архива на личные данные |
 | `tools\fix-bom.ps1` | пересохраняет скрипты в UTF-8 с BOM |
 | `tools\stop-widget.ps1` | гасит виджет и движок по `runtime.json` |

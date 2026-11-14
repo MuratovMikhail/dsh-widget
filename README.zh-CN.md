@@ -48,9 +48,7 @@
 | 错误 | 带光晕的红色圆点、“已停止”、预览/原因 |
 | 空闲 / 离线 | 灰色圆点、“没有活动任务”或“引擎未连接” |
 
-所有状态汇总于一张总览图（演示数据，深色主题）：
-
-![组件的所有状态](docs/zh-CN/preview-states.png)
+更多组件状态（演示数据，深色主题）：
 
 ![完成](docs/zh-CN/preview-done.png)
 ![等待回答](docs/zh-CN/preview-waiting.png)
@@ -327,7 +325,6 @@ Invoke-RestMethod http://127.0.0.1:45871/status | ConvertTo-Json -Depth 6
 | `tools\test-ack.js` | 测试“已查看”和取消固定 |
 | `tools\test-content.js` | 问题、确认、错误、计划、增量读取、CORS |
 | `tools\make-previews.ps1` | 重新截取 `docs\<lang>\preview-*.png` |
-| `tools\make-states-sheet.ps1` | 生成包含所有状态的单张总览图 `docs\<lang>\preview-states.png` |
 | `tools\audit-release.ps1` | 检查压缩包中是否含有个人数据 |
 | `tools\fix-bom.ps1` | 将脚本重新保存为带 BOM 的 UTF-8 |
 | `tools\stop-widget.ps1` | 根据 `runtime.json` 停止组件和引擎 |

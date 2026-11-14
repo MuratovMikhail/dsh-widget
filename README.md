@@ -55,9 +55,7 @@ Widget states:
 | Error | red dot with a halo, "Stopped", preview/reason |
 | Idle / offline | gray dot, "No active tasks" or "Engine offline" |
 
-All states on a single sheet (demo data, dark theme):
-
-![All widget states](docs/en/preview-states.png)
+More widget states (demo data, dark theme):
 
 ![Done](docs/en/preview-done.png)
 ![Waiting for an answer](docs/en/preview-waiting.png)
@@ -391,7 +389,6 @@ Invoke-RestMethod http://127.0.0.1:45871/status | ConvertTo-Json -Depth 6
 | `tools\test-ack.js` | "viewed" and unpin test |
 | `tools\test-content.js` | question, approval, error, plan, incremental reads, CORS |
 | `tools\make-previews.ps1` | re-captures `docs\<lang>\preview-*.png` |
-| `tools\make-states-sheet.ps1` | a single contact sheet `docs\<lang>\preview-states.png` with all states |
 | `tools\audit-release.ps1` | checks the archive for personal data |
 | `tools\fix-bom.ps1` | re-saves scripts as UTF-8 with BOM |
 | `tools\stop-widget.ps1` | stops the widget and the engine via `runtime.json` |
