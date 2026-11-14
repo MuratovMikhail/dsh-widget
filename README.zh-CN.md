@@ -271,12 +271,13 @@ widget-ui.ps1         (PowerShell 5.1 + WinForms)
 Windows 11 使用 DWM 圆角窗口。Windows 10 会回退到圆角窗口区域；系统没有 `Segoe UI Variable`，
 因此使用 Segoe UI 和 Segoe MDL2 Assets。中文界面使用 Microsoft YaHei UI。不支持 Windows 10 S、
 32 位 Windows 和 Windows 10 ARM。兼容性基于 API 和字体回退；作者仅在 Windows 11 上实测。
+Windows 10 的常规支持已于 2025 年 10 月 14 日结束；这里的 Windows 10 支持属于尽力而为。
 
 ---
 
 ## 限制
 
-- **这不是 Windows 11 小组件板中的小组件。** 该面板只接受带有 Widget Provider 的打包 MSIX 应用（Windows App SDK、包签名、COM 激活器注册）。那是一个独立的 C#/WinUI 构建。这里描述的组件是桌面上的普通窗口：用途相同，但无需安装、签名和管理员权限。
+- **这不是 Windows 11 小组件板中的小组件。** 该面板只接受带有 Widget Provider 的打包 MSIX 应用（Windows App SDK、包签名、COM 激活器注册）。那是一个独立的 C#/WinUI 构建。这里描述的组件是桌面上的普通窗口：用途相同，但无需 MSIX 打包、强制代码签名或管理员权限。
 - “正在做什么”只能精确到步骤和工具调用层面。当模型生成文本时，只能看到“思考中…”：在消息完成前，流式文本不会写入日志。
 - 子代理树通过子会话日志（`parentSession`、`delegationDepth`）跟踪：组件会等待整棵树稳定下来。如果子代理超过 30 分钟没有事件（“卡住”），它就不再被视为活动。
 - 如果打开了多个 DSH 窗口，组件会以堆栈形式显示活动会话，但用于托盘和通知的主会话按“粘性”规则选择。
@@ -372,6 +373,8 @@ powershell -ExecutionPolicy Bypass -File .\build-installer.ps1 -Version 1.0.0
 [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md)。隐私政策见
 [PRIVACY.md](PRIVACY.md)，第三方素材见
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
+已发布的 `1.0.0` 安装程序尚未代码签名；首个由 SignPath 签名的版本将是 `1.0.1`。
 
 ## 参与贡献
 
