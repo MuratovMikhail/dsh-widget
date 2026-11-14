@@ -321,7 +321,8 @@ On Windows 11 the window uses DWM rounded corners. On Windows 10 the widget fall
 rounded window region; `Segoe UI Variable` is absent, so Segoe UI and Segoe MDL2 Assets are used.
 The Chinese UI uses Microsoft YaHei UI. Windows 10 S mode, 32-bit Windows, and Windows 10 ARM are
 not supported. This compatibility is based on API and font fallbacks; the author has physically
-tested Windows 11 only.
+tested Windows 11 only. Windows 10 is past the end of regular Microsoft support (14 October 2025);
+Windows 10 support here is best-effort.
 
 ---
 
@@ -329,8 +330,8 @@ tested Windows 11 only.
 
 - **This is not a Windows 11 widgets board widget.** The board only accepts packaged MSIX applications
   with a Widget Provider (Windows App SDK, package signing, COM activator registration). That is a separate build
-  in C#/WinUI. The widget described here is an ordinary window on top of the desktop: the same idea, but without installation,
-  signing, or administrator rights.
+  in C#/WinUI. The widget described here is an ordinary window on top of the desktop: the same idea, but without
+  MSIX packaging, mandatory code signing, or administrator rights.
 - "What it does" is known at the level of steps and tool calls. While the model is generating text, you see
   "Thinking…" — streamed text does not reach the log until the message is complete.
 - The subagent tree is tracked via the logs of child sessions (`parentSession`, `delegationDepth`):
@@ -443,6 +444,8 @@ See [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md) for the signed artifact,
 team roles, build provenance, and the manual approval process. The privacy
 policy is in [PRIVACY.md](PRIVACY.md); third-party assets are listed in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+The published `1.0.0` installer is not code-signed yet; the first SignPath-signed build will be `1.0.1`.
 
 ## Contributing
 

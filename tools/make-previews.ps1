@@ -24,7 +24,6 @@ $cases = @(
     @{ Demo = 'subagents'; File = 'preview-subagents.png' },
     @{ Demo = 'list'; File = 'preview-list.png' },
     @{ Demo = 'many'; File = 'preview-many.png' },
-    @{ Demo = 'empty'; File = 'preview-empty.png' },
     @{ Demo = 'list'; Theme = 'light'; File = 'preview-light.png' }
 )
 
