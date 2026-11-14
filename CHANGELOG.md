@@ -2,6 +2,19 @@
 
 # Changelog
 
+## 1.0.1 — 2026-11-14
+
+### Fixed
+
+- The installer no longer crashes with `Unknown constant 'userprofile'` when DSH's Node is found only under `%USERPROFILE%` instead of `%LOCALAPPDATA%`.
+- Plan mode now shows **Waiting for approval** in the widget instead of **Working** while DSH waits for "Approve" or "Request changes".
+
+### Changed
+
+- The tray icon is a single static branded "D"; the current state is shown in its tooltip.
+- Removed the duplicated state contact sheet and the tray previews with Russian labels from the English README.
+- README, privacy, code signing and Windows 10 notes were cleaned up; the unused empty-state preview was removed.
+
 ## 1.0.0 — 2026-11-14
 
 ### Widget
