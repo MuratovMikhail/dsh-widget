@@ -133,6 +133,25 @@ async function main() {
     snap = await waitFor((s) => s.primary.status === 'working', 4000, 'подтверждение снято')
     check(true, 'approval/decided снимает ожидание')
 
+    // 3b. План в plan mode: exit_plan_mode ждёт кнопку «Утвердить».
+    appendRecords('session-plan-approval', session('session-plan-approval', 'План на утверждение', [
+      { type: 'turn/start', seq: 2, time: now, data: { turn: 1 } },
+      {
+        type: 'tool/call', seq: 3, time: Date.now(), data: {
+          turn: 1, step: 1, callId: 'call-plan', name: 'exit_plan_mode',
+          arguments: JSON.stringify({ plan: '# План\n\nСделать портал.' }),
+        },
+      },
+    ]))
+    snap = await waitFor((s) => s.primary && s.primary.id === 'session-plan-approval' && s.primary.status === 'waiting', 5000, 'ожидание утверждения плана')
+    check(snap.primary.activity.kind === 'approval', 'exit_plan_mode: kind=approval')
+    check(!snap.primary.activity.tool, 'exit_plan_mode: без технического имени инструмента')
+    appendRecords('session-plan-approval', [{ type: 'tool/result', seq: 4, time: Date.now(), data: { turn: 1, step: 1, callId: 'call-plan', ok: true } }])
+    snap = await waitFor((s) => s.primary.id === 'session-plan-approval' && s.primary.status === 'working', 4000, 'план утверждён')
+    check(true, 'exit_plan_mode: tool/result снимает ожидание')
+    appendRecords('session-plan-approval', [{ type: 'turn/end', seq: 5, time: Date.now(), data: { turn: 1, reason: { kind: 'completed' } } }])
+    await waitFor((s) => s.sessions.find((x) => x.id === 'session-plan-approval')?.status === 'done', 4000, 'план закрыт')
+
     // 4. Ошибка хода — done.ok=false.
     appendRecords('session-q', [
       { type: 'assistant/message', seq: 8, time: Date.now(), data: { message: { content: [{ type: 'text', text: 'Не удалось собрать проект.' }] } } },
