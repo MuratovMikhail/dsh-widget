@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 'use strict'
 
 /**
@@ -23,7 +23,7 @@ const ZSTD_MAGIC = Buffer.from([0x28, 0xb5, 0x2f, 0xfd])
 const DONE_VISIBLE_MS = 3 * 60 * 1000      // сколько держим «готово» на карточке
 const STALE_MS = 30 * 60 * 1000            // ход без событий дольше — считаем брошенным
 const TICK_MS = 1000
-let VERSION = '1.0.5'
+let VERSION = '1.0.6'
 try {
   const v = fs.readFileSync(path.join(__dirname, 'VERSION'), 'utf8').trim()
   if (v) VERSION = v

@@ -2,6 +2,23 @@
 
 # Changelog
 
+## 1.0.6 — 2026-11-15
+
+### Installer audit
+
+- The bridge now finds the widget through `%LOCALAPPDATA%\DSH Widget\install-dir.txt`, so a non-default installation folder works. The pointer is written by the installer in UTF-8 and removed on uninstall.
+- The deferred plugin finisher checks `pending-plugin.json`; it no longer overwrites a mode the user selected while waiting. Settings clears the pending marker when the user saves a mode.
+- Plugin installation and removal share `tools/dsh-common.ps1` for DSH home and CLI discovery. Removal now falls back to editing the profile and deleting the package if the CLI is absent or fails.
+- `status.ps1`, `VERSION`, `dsh-common.ps1`, `finish-plugin.ps1` and the bridge 1.0.1 package are included in both the portable archive and the EXE.
+- Version is read from `VERSION`; the release workflow no longer hardcodes it. The installer test reads its expected version from `VERSION`.
+- Installer tests cover plugin/startup/manual, custom path, update, uninstall, reinstall, and installation before the first DSH launch. CI compiles the installer and runs the lifecycle test.
+
+### Fixed
+
+- Settings no longer lose the “With DeepSeek Harness” mode because of the read-only `$HOME` variable.
+- The installer always shows the installation-directory page.
+- Silent uninstall no longer blocks on the config question.
+
 ## 1.0.5 — 2026-11-15
 
 ### Fixed
