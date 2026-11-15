@@ -95,7 +95,7 @@ The installer is currently unsigned. Verify the SHA-256 from the release page, t
 
 ### Installer (recommended)
 
-`DSHWidget-Setup-1.0.6.exe` (about 3 MB) — no administrator rights, installs to
+`DSHWidget-Setup-1.0.7.exe` (about 3 MB) — no administrator rights, installs to
 `%LOCALAPPDATA%\Programs\DSH Widget`.
 
 1. Run it; if SmartScreen warns "Unknown publisher", click "More info" → "Run anyway"
@@ -411,8 +411,8 @@ Invoke-RestMethod http://127.0.0.1:45871/status | ConvertTo-Json -Depth 6
 | `assets\notify.wav` | built-in completion sound |
 | `start-widget.vbs` | launches without a console window |
 | `install.ps1` | shortcuts in the Start menu and on the desktop, autostart |
-| `release.ps1` | builds `dsh-widget-1.0.6.zip` without personal data |
-| `build-installer.ps1`, `installer.iss` | builds `dist\DSHWidget-Setup-1.0.6.exe` (requires Inno Setup) |
+| `release.ps1` | builds `dsh-widget-1.0.7.zip` without personal data |
+| `build-installer.ps1`, `installer.iss` | builds `dist\DSHWidget-Setup-1.0.7.exe` (requires Inno Setup) |
 | `plugin-src\`, `plugin\` | the service bridge plugin `dsh-widget-bridge` |
 | `tools\status.ps1` | human-readable engine status |
 | `tools\test-subagents.js` | subagent logic test on a synthetic DSH_HOME |
@@ -448,7 +448,7 @@ powershell -ExecutionPolicy Bypass -File .\release.ps1 -Version 1.0
 powershell -ExecutionPolicy Bypass -File .\tools\audit-release.ps1
 
 # installer
-powershell -ExecutionPolicy Bypass -File .\build-installer.ps1 -Version 1.0.6
+powershell -ExecutionPolicy Bypass -File .\build-installer.ps1 -Version 1.0.7
 ```
 
 `config.json`, logs, `selftest-*.png`, `dist/`, `_backup/` must not end up in the archive/repository.
@@ -478,7 +478,7 @@ git config --global user.email "<email>"
 
 git init -b main
 git add .
-git commit -m "DSH Widget 1.0.6"
+git commit -m "DSH Widget 1.0.7"
 ```
 
 Create an empty repository `dsh-widget` on GitHub, then:
@@ -491,10 +491,10 @@ git push -u origin main
 Publishing is automatic on a version tag:
 
 ```powershell
-git tag -a v1.0.6 -m "DSH Widget 1.0.6"
-git push origin v1.0.6
+git tag -a v1.0.7 -m "DSH Widget 1.0.7"
+git push origin v1.0.7
 ```
 
-`.github/workflows/release.yml` builds `dsh-widget-1.0.6.zip`, `DSHWidget-Setup-1.0.6.exe`, and
+`.github/workflows/release.yml` builds `dsh-widget-1.0.7.zip`, `DSHWidget-Setup-1.0.7.exe`, and
 `SHA256SUMS.txt`, then creates the GitHub Release. No manual asset upload and no `gh` are needed.
 The CI workflow runs the engine tests and an encoding check on every push.

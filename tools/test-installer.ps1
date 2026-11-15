@@ -57,9 +57,20 @@ $startup = Join-Path ([Environment]::GetFolderPath('Startup')) 'DSH Widget.lnk'
 $desktop = Join-Path ([Environment]::GetFolderPath('Desktop')) 'DSH Widget.lnk'
 $uninstKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{B7E1C0D4-5A62-4F0B-9A3E-2D7C6B1F0A55}_is1'
 $unins = Join-Path $appDir 'unins000.exe'
+$defaultAppDir = Join-Path $env:LOCALAPPDATA 'Programs\DSH Widget'
 
 New-Item -ItemType Directory -Force -Path $WorkRoot | Out-Null
-$env:DSH_HOME = $dshHome
+
+# Защита от запуска на рабочей машине: тест использует общие имена ярлыков,
+# ключ деинсталлятора и указатель. В изолированной среде их быть не должно.
+$existing = @()
+foreach ($p in @($uninstKey, $startMenuDir, $startup, $desktop, $pointerDir, (Join-Path $defaultAppDir 'widget-ui.ps1'))) {
+    if (Test-Path -LiteralPath $p) { $existing += $p }
+}
+if ($existing.Count -gt 0) {
+    throw ("Тест обнаружен существующую установку DSH Widget:`n  " + ($existing -join "`n  ") +
+           "`nЗапускайте lifecycle-тест только в изолированной Windows/VM без установленного виджета.")
+}
 
 function Reset-Install {
     if (Test-Path -LiteralPath $unins) {
@@ -112,7 +123,9 @@ function Check-Common([string]$label, [string]$expectedMode, [bool]$pluginExpect
     $cfg = Get-Config
     Check ($label + ': config есть') ($null -ne $cfg)
     Check ($label + ': launchMode=' + $expectedMode) ($null -ne $cfg -and [string]$cfg.launchMode -eq $expectedMode) ('actual=' + $(if ($cfg) { $cfg.launchMode } else { '<none>' }))
+    Check ($label + ': autostart=' + $startupExpected) ($null -ne $cfg -and [bool]$cfg.autostart -eq $startupExpected)
     Check ($label + ': bundle=' + $pluginExpected) ((Has-Bundle) -eq $pluginExpected) ('actual=' + (Has-Bundle))
+    Check ($label + ': pending marker отсутствует') (-not (Test-Path -LiteralPath (Join-Path $appDir 'pending-plugin.json')))
     Check ($label + ': start menu') (Test-Path -LiteralPath $startMenu)
     Check ($label + ': startup shortcut=' + $startupExpected) ((Test-Path -LiteralPath $startup) -eq $startupExpected)
     if (Test-Path -LiteralPath $startMenu) {
@@ -141,6 +154,8 @@ function Check-Common([string]$label, [string]$expectedMode, [bool]$pluginExpect
             $bridgeVersion = [string](Get-Content -LiteralPath $bridgeManifest -Raw -Encoding UTF8 | ConvertFrom-Json).version
             Check ($label + ': bridge version ' + $expectedBridgeVersion) ($bridgeVersion -eq $expectedBridgeVersion) ('actual=' + $bridgeVersion)
         }
+    } else {
+        Check ($label + ': bridge package отсутствует') (-not (Test-Path -LiteralPath (Join-Path $profileDir 'node_modules\@local\dsh-widget-bridge')))
     }
 }
 
@@ -153,7 +168,17 @@ function Install-Mode([string]$mode, [string]$task, [bool]$withProfile, [bool]$p
     Check-Common $mode $mode $pluginExpected $startupExpected
 }
 
+function Switch-Mode([string]$label, [string]$task, [string]$expectedMode, [bool]$pluginExpected, [bool]$startupExpected) {
+    Write-Step ('переключение ' + $label)
+    $code = Run-Installer $task ('switch-' + $label)
+    Check ($label + ': exit 0') ($code -eq 0) ('code=' + $code)
+    Check-Common $label $expectedMode $pluginExpected $startupExpected
+    Check ($label + ': bridge package соответствует режиму') ((Test-Path -LiteralPath (Join-Path $profileDir 'node_modules\@local\dsh-widget-bridge')) -eq $pluginExpected)
+    Check ($label + ': startup-ссылка соответствует режиму') ((Test-Path -LiteralPath $startup) -eq $startupExpected)
+}
+
 try {
+    $env:DSH_HOME = $dshHome
     Write-Output ('установщик: ' + $Exe)
     Write-Output ('ожидаемая версия: ' + $expectedVersion)
     Write-Output ('app: ' + $appDir)
@@ -163,6 +188,31 @@ try {
     Install-Mode 'plugin' 'mode_plugin' $true $true $false
     Install-Mode 'startup' 'mode_startup' $false $false $true
     Install-Mode 'manual' 'mode_manual' $false $false $false
+
+    # 1b. Последовательные переключения без удаления приложения.
+    Write-Step 'переключения plugin -> startup -> manual -> plugin -> manual'
+    Reset-Install
+    New-Profile
+    Check 'sequence: первичный plugin' ((Run-Installer 'mode_plugin' 'sequence-plugin') -eq 0)
+    Switch-Mode 'plugin-to-startup' 'mode_startup' 'startup' $false $true
+    Switch-Mode 'startup-to-manual' 'mode_manual' 'manual' $false $false
+    Switch-Mode 'manual-to-plugin' 'mode_plugin' 'plugin' $true $false
+    Switch-Mode 'plugin-to-manual' 'mode_manual' 'manual' $false $false
+
+    # 1c. Отмена уже запущенного finisher при повторной установке.
+    Write-Step 'отмена pending -> manual'
+    Reset-Install
+    Remove-Item -LiteralPath $dshHome -Recurse -Force -ErrorAction SilentlyContinue
+    Check 'pending-manual: plugin install exit 0' ((Run-Installer 'mode_plugin' 'pending-manual-before') -eq 0)
+    Check 'pending-manual: marker создан' (Test-Path -LiteralPath (Join-Path $appDir 'pending-plugin.json'))
+    Switch-Mode 'pending-to-manual' 'mode_manual' 'manual' $false $false
+
+    Write-Step 'отмена pending -> startup'
+    Reset-Install
+    Remove-Item -LiteralPath $dshHome -Recurse -Force -ErrorAction SilentlyContinue
+    Check 'pending-startup: plugin install exit 0' ((Run-Installer 'mode_plugin' 'pending-startup-before') -eq 0)
+    Check 'pending-startup: marker создан' (Test-Path -LiteralPath (Join-Path $appDir 'pending-plugin.json'))
+    Switch-Mode 'pending-to-startup' 'mode_startup' 'startup' $false $true
 
     # 2. Обновление поверх установленной версии: custom path и конфиг должны сохраниться.
     Write-Step 'обновление поверх'

@@ -23,10 +23,13 @@ $exitMin = if ($Mode -eq 'plugin') { 5 } else { 0 }
 
 $modeChanged = $true
 $hasExit = $false
+$wantAutostart = ($Mode -eq 'startup')
+$currentAutostart = $false
 if ($current) {
     $modeChanged = ([string]$current.launchMode -ne $Mode)
     $hasExit = ($null -ne $current.exitWhenDshClosedMin)
-    if (-not $modeChanged -and $hasExit) { exit 0 }
+    $currentAutostart = [bool]$current.autostart
+    if (-not $modeChanged -and $hasExit -and ($currentAutostart -eq $wantAutostart)) { exit 0 }
 }
 
 $config = [ordered]@{ }
@@ -35,6 +38,7 @@ if ($current) {
 }
 $config['launchMode'] = $Mode
 if ($modeChanged -or -not $hasExit) { $config['exitWhenDshClosedMin'] = $exitMin }
+$config['autostart'] = $wantAutostart
 
 $json = $config | ConvertTo-Json
 [System.IO.File]::WriteAllText($configPath, $json + "`r`n", (New-Object System.Text.UTF8Encoding($false)))

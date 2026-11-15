@@ -18,6 +18,7 @@ try {
         'tools\dsh-common.ps1',
         'tools\install-plugin.ps1',
         'tools\finish-plugin.ps1',
+        'tools\cancel-pending-plugin.ps1',
         'tools\remove-plugin.ps1',
         'plugin\dsh-widget-bridge-1.0.1.tgz'
     )

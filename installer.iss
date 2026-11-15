@@ -4,7 +4,7 @@
 
 #define AppName "DSH Widget"
 #ifndef AppVersion
-  #define AppVersion "1.0.6"
+  #define AppVersion "1.0.7"
 #endif
 #define AppPublisher "DSH Widget"
 #define AppId "{{B7E1C0D4-5A62-4F0B-9A3E-2D7C6B1F0A55}"
@@ -67,6 +67,7 @@ Source: "tools\restart-widget.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
 Source: "tools\dsh-common.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
 Source: "tools\install-plugin.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
 Source: "tools\finish-plugin.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
+Source: "tools\cancel-pending-plugin.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
 Source: "tools\remove-plugin.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
 Source: "tools\set-mode.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
 Source: "plugin\dsh-widget-bridge-1.0.1.tgz"; DestDir: "{app}\plugin"; Flags: ignoreversion
@@ -82,6 +83,7 @@ Filename: "wscript.exe"; Parameters: """{app}\start-widget.vbs"""; WorkingDir: "
 
 [UninstallRun]
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\tools\stop-widget.ps1"""; Flags: runhidden; RunOnceId: "StopWidget"
+Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\tools\cancel-pending-plugin.ps1"" -AppDir ""{app}"""; Flags: runhidden; RunOnceId: "CancelPending"
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\tools\remove-plugin.ps1"""; Flags: runhidden; RunOnceId: "RemovePlugin"
 
 [UninstallDelete]
@@ -89,6 +91,7 @@ Type: files; Name: "{app}\widget.log"
 Type: files; Name: "{app}\runtime.json"
 Type: files; Name: "{app}\bridge-stderr.log"
 Type: files; Name: "{app}\finish-plugin.log"
+Type: files; Name: "{app}\cancel-plugin.log"
 Type: files; Name: "{app}\pending-plugin.json"
 Type: files; Name: "{localappdata}\DSH Widget\install-dir.txt"
 
@@ -146,6 +149,16 @@ begin
     else if WizardIsTaskSelected('mode_startup') then Mode := 'startup'
     else Mode := 'manual';
 
+    // Перед любой сменой режима отменяем старый finisher и удаляем bridge.
+    // Иначе startup/manual мог бы унаследовать plugin от прошлой установки.
+    Params := '-NoProfile -ExecutionPolicy Bypass -File "' +
+              ExpandConstant('{app}\tools\cancel-pending-plugin.ps1') + '" -AppDir "' +
+              ExpandConstant('{app}') + '"';
+    if not Exec('powershell.exe', Params, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+      RaiseException(ExpandConstant('{cm:ModeSwitchFail}'))
+    else if ResultCode <> 0 then
+      RaiseException(ExpandConstant('{cm:ModeSwitchFail}'));
+
     if Mode = 'plugin' then
     begin
       Params := '-NoProfile -ExecutionPolicy Bypass -File "' +
@@ -173,6 +186,12 @@ begin
     Params := '-NoProfile -ExecutionPolicy Bypass -File "' +
               ExpandConstant('{app}\tools\set-mode.ps1') + '" -Mode ' + Mode;
     Exec('powershell.exe', Params, '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+
+    // Ярлык автозапуска — часть режима, а не «остаток» прошлой установки.
+    if Mode <> 'startup' then
+      DeleteFile(ExpandConstant('{userstartup}\DSH Widget.lnk'));
+    if not WizardIsTaskSelected('desktopicon') then
+      DeleteFile(ExpandConstant('{autodesktop}\DSH Widget.lnk'));
 
     // DSH ещё ни разу не открывали: профиля нет. Ждём первый запуск и
     // закрытие DSH, затем ставим плагин и переключаем режим на plugin.
@@ -253,6 +272,8 @@ russian.PluginNoDsh=Профиль DeepSeek Harness ещё не создан.%n�
 english.PluginNoDsh=The DeepSeek Harness profile does not exist yet.%nThe widget is installed. Start DSH once and close it — the plugin and “with DSH” mode will be enabled automatically.
 russian.PluginInstallCode=Плагин не установлен, код:
 english.PluginInstallCode=The plugin wasn't installed, code:
+russian.ModeSwitchFail=Не удалось корректно переключить режим запуска и убрать старый плагин.%nУстановка остановлена, чтобы не оставить два механизма запуска.
+english.ModeSwitchFail=Could not switch the launch mode and remove the old plugin cleanly.%nSetup stopped to avoid leaving two launch mechanisms.
 russian.NodeMissing=DeepSeek Harness не найден: нет node.exe в его каталоге.%nВиджет установится, но запустится только после установки DeepSeek Harness.
 english.NodeMissing=DeepSeek Harness was not found: node.exe is missing from its folder.%nThe widget will install but can only start after DeepSeek Harness is installed.
 russian.GroupLaunch=Способ запуска
