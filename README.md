@@ -1,4 +1,4 @@
-**English** · [Русский](README.ru.md) · [简体中文](README.zh-CN.md)
+**English** · [Русский](README.ru.md) · [简体中文](README.zh-CN.md) · [Website](https://muratovmikhail.github.io/dsh-widget/)
 
 [![CI](https://github.com/MuratovMikhail/dsh-widget/actions/workflows/ci.yml/badge.svg)](https://github.com/MuratovMikhail/dsh-widget/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/MuratovMikhail/dsh-widget)](https://github.com/MuratovMikhail/dsh-widget/releases/latest)
@@ -10,7 +10,7 @@
 
 # DSH Widget — a DeepSeek Harness status widget for Windows 10/11
 
-A floating desktop widget that shows **what DeepSeek Harness is doing right now**,
+A floating desktop widget that shows **what DeepSeek Harness (DSH) is doing right now**,
 **what is waiting for your answer**, and **what has already finished**. An unofficial widget: DSH is not modified,
 the widget only reads the session logs that the app already writes to disk.
 
@@ -62,6 +62,32 @@ More widget states (demo data, dark theme):
 ![Waiting for approval](docs/en/preview-approval.png)
 ![Error](docs/en/preview-error.png)
 ![Subagents at work](docs/en/preview-subagents.png)
+
+---
+
+## Quick answers
+
+**What is DSH Widget?**  
+A small Windows status widget for **DeepSeek Harness (DSH)**. It shows the current agent turn,
+plan approvals, subagent activity, completion and errors without opening the DSH window.
+
+**Does it work with a portable DeepSeek Harness?**  
+Yes. The installer looks for DSH in the registry, the running process, `DSH_HOME`, the default
+profile and the uninstall entry. If no profile is found, the widget still installs in manual mode.
+
+**Does it send my data anywhere?**  
+No. It reads local DSH session journals and the optional balance request. No telemetry, no
+account password, no prompt contents are uploaded. See [PRIVACY.md](PRIVACY.md).
+
+**Does it need administrator rights?**  
+No. It installs per-user to `%LOCALAPPDATA%\Programs\DSH Widget`.
+
+**Which Windows versions are supported?**  
+Windows 10 (21H2+) and Windows 11, x64. Windows PowerShell 5.1 is used.
+
+**Why does SmartScreen say "Unknown publisher"?**  
+The installer is currently unsigned. Verify the SHA-256 from the release page, then use
+"More info" → "Run anyway".
 
 ---
 
@@ -394,7 +420,7 @@ Invoke-RestMethod http://127.0.0.1:45871/status | ConvertTo-Json -Depth 6
 | `tools\fix-bom.ps1` | re-saves scripts as UTF-8 with BOM |
 | `tools\stop-widget.ps1` | stops the widget and the engine via `runtime.json` |
 | `config.json` | settings (created on the first change, not included in the archive) |
-| `docs\` | previews for the README |
+| `docs\` | GitHub Pages landing page and previews |
 | `LICENSE`, `CHANGELOG.md` | the MIT license and the version history |
 | `PRIVACY.md` | privacy policy: local data and the optional balance request |
 | `THIRD_PARTY_NOTICES.md` | third-party asset notices |
