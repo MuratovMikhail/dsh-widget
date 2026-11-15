@@ -31,7 +31,7 @@ $ErrorActionPreference = 'Stop'
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $script:configPath = Join-Path $scriptDir 'config.json'
 $script:enginePath = Join-Path $scriptDir 'widget-engine.js'
-$script:appVersion = '1.0.8'
+$script:appVersion = '1.0.9'
 $versionFile = Join-Path $scriptDir 'VERSION'
 if (Test-Path -LiteralPath $versionFile) {
     try {

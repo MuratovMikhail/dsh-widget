@@ -2,6 +2,17 @@
 
 # Changelog
 
+## 1.0.9 — 2026-11-15
+
+### Fixed
+
+- `cancel-pending-plugin.ps1` resolves the DSH profile through `Get-DshHome`, so a portable or otherwise non-standard installation is no longer reported as "bridge absent" while the bundle is still installed.
+- `cancel-pending-plugin.ps1` stops only finisher scripts that belong to this installation directory. Same-named scripts from other folders or copies of the widget keep running.
+
+### Tests
+
+- Added `tools/test-cancel-plugin.ps1`: non-standard `DSH_HOME`, discovery through the uninstall entry, foreign processes and pending-marker cleanup. It runs from the installer lifecycle test.
+
 ## 1.0.8 — 2026-11-15
 
 ### Fixed
