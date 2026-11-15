@@ -62,10 +62,10 @@
 
 ### 安装程序（推荐）
 
-`DSHWidget-Setup-1.0.4.exe`（约 3 MB），无需管理员权限，会安装到 `%LOCALAPPDATA%\Programs\DSH Widget`。
+`DSHWidget-Setup-1.0.5.exe`（约 3 MB），无需管理员权限，会安装到 `%LOCALAPPDATA%\Programs\DSH Widget`。
 
 1. 运行安装程序；如果出现 SmartScreen“未知发布者”警告，请依次点击“更多信息”→“仍要运行”（该文件未使用证书签名）。
-2. 选择启动模式（见下文），如有需要，可勾选创建桌面快捷方式。
+2. 选择安装文件夹（默认 `%LOCALAPPDATA%\Programs\DSH Widget`）、启动模式（见下文），如有需要，可勾选创建桌面快捷方式。
 3. 卸载：“设置 → 应用 → DSH Widget → 卸载”。卸载前组件会关闭，快捷方式和开机启动项会被移除；安装程序会单独询问如何处理 `config.json`。
 
 | 模式 | 会发生什么 |
@@ -74,7 +74,7 @@
 | **登录 Windows 时** | 在“启动”文件夹中创建快捷方式：组件持续运行，即使 DSH 已关闭。不会安装插件 |
 | **仅手动** | 不设置自动启动：通过“开始”菜单中的快捷方式启动组件 |
 
-如果这台电脑上的 DSH 还从未打开过，会跳过插件安装——组件将独立运行，之后可以再安装插件：`tools\install-plugin.ps1`。
+如果这台电脑上的 DSH 还从未打开过，安装程序仍会完成安装：后台 finisher 会等待首次生成的 DSH 配置，在 DSH 关闭后安装 bridge，并自动启用“随 DeepSeek Harness 启动”模式。如果在完成前重启了组件或电脑，下次登录时会通过 `RunOnce` 重试。若仍未完成，请重新运行安装程序，它会立即安装插件。
 
 ### 从压缩包 / 源码安装
 
@@ -317,8 +317,8 @@ Invoke-RestMethod http://127.0.0.1:45871/status | ConvertTo-Json -Depth 6
 | `assets\notify.wav` | 内置完成提示音 |
 | `start-widget.vbs` | 无控制台窗口启动 |
 | `install.ps1` | 创建“开始”菜单和桌面快捷方式、开机启动 |
-| `release.ps1` | 构建 `dsh-widget-1.0.4.zip`，不含个人数据 |
-| `build-installer.ps1`, `installer.iss` | 构建 `dist\DSHWidget-Setup-1.0.4.exe`（需要 Inno Setup） |
+| `release.ps1` | 构建 `dsh-widget-1.0.5.zip`，不含个人数据 |
+| `build-installer.ps1`, `installer.iss` | 构建 `dist\DSHWidget-Setup-1.0.5.exe`（需要 Inno Setup） |
 | `plugin-src\`, `plugin\` | 辅助桥接插件 `dsh-widget-bridge` |
 | `tools\status.ps1` | 便于阅读的引擎状态 |
 | `tools\test-subagents.js` | 在合成 DSH_HOME 上测试子代理逻辑 |
@@ -352,7 +352,7 @@ powershell -ExecutionPolicy Bypass -File .\release.ps1 -Version 1.0
 powershell -ExecutionPolicy Bypass -File .\tools\audit-release.ps1
 
 # 安装程序
-powershell -ExecutionPolicy Bypass -File .\build-installer.ps1 -Version 1.0.4
+powershell -ExecutionPolicy Bypass -File .\build-installer.ps1 -Version 1.0.5
 ```
 
 
@@ -378,7 +378,7 @@ git config --global user.email "<email>"
 
 git init -b main
 git add .
-git commit -m "DSH Widget 1.0.4"
+git commit -m "DSH Widget 1.0.5"
 ```
 
 在 GitHub 上创建一个名为 `dsh-widget` 的空仓库，然后：
@@ -391,10 +391,10 @@ git push -u origin main
 推送版本标签即可自动发布：
 
 ```powershell
-git tag -a v1.0.4 -m "DSH Widget 1.0.4"
-git push origin v1.0.4
+git tag -a v1.0.5 -m "DSH Widget 1.0.5"
+git push origin v1.0.5
 ```
 
-`.github/workflows/release.yml` 会构建 `dsh-widget-1.0.4.zip`、`DSHWidget-Setup-1.0.4.exe` 和
+`.github/workflows/release.yml` 会构建 `dsh-widget-1.0.5.zip`、`DSHWidget-Setup-1.0.5.exe` 和
 `SHA256SUMS.txt`，然后创建 GitHub Release。无需手动上传文件，也不需要 `gh`。
 CI 会在每次 push 时运行引擎测试和编码检查。

@@ -95,12 +95,13 @@ The installer is currently unsigned. Verify the SHA-256 from the release page, t
 
 ### Installer (recommended)
 
-`DSHWidget-Setup-1.0.4.exe` (about 3 MB) — no administrator rights, installs to
+`DSHWidget-Setup-1.0.5.exe` (about 3 MB) — no administrator rights, installs to
 `%LOCALAPPDATA%\Programs\DSH Widget`.
 
 1. Run it; if SmartScreen warns "Unknown publisher", click "More info" → "Run anyway"
    (the file is not signed with a certificate).
-2. Choose the launch mode (see below) and, if you like, a desktop shortcut.
+2. Choose the installation folder (default `%LOCALAPPDATA%\Programs\DSH Widget`), the launch mode
+   (see below) and, if you like, a desktop shortcut.
 3. To uninstall — "Settings → Apps → DSH Widget → Uninstall". The widget is closed before removal,
    shortcuts and autostart are removed; the installer asks separately about `config.json`.
 
@@ -110,8 +111,11 @@ The installer is currently unsigned. Verify the SHA-256 from the release page, t
 | **At Windows sign-in** | a shortcut in "Startup": the widget runs permanently, including when DSH is closed. The plugin is not installed |
 | **Manual only** | no autostart: the widget is launched from a Start menu shortcut |
 
-If DSH has never been opened on the computer, the plugin is skipped — the widget runs separately,
-and the plugin can be installed later: `tools\install-plugin.ps1`.
+If DSH has never been opened on the computer, the installer still finishes: a background finisher
+waits for the first DSH profile, installs the bridge after DSH closes, and enables the
+"With DeepSeek Harness" mode automatically. If the widget or the PC is restarted before that,
+the finisher is retried at the next sign-in through `RunOnce`. If it still does not finish,
+run the installer again — it will install the plugin immediately.
 
 ### From the archive / sources
 
@@ -407,8 +411,8 @@ Invoke-RestMethod http://127.0.0.1:45871/status | ConvertTo-Json -Depth 6
 | `assets\notify.wav` | built-in completion sound |
 | `start-widget.vbs` | launches without a console window |
 | `install.ps1` | shortcuts in the Start menu and on the desktop, autostart |
-| `release.ps1` | builds `dsh-widget-1.0.4.zip` without personal data |
-| `build-installer.ps1`, `installer.iss` | builds `dist\DSHWidget-Setup-1.0.4.exe` (requires Inno Setup) |
+| `release.ps1` | builds `dsh-widget-1.0.5.zip` without personal data |
+| `build-installer.ps1`, `installer.iss` | builds `dist\DSHWidget-Setup-1.0.5.exe` (requires Inno Setup) |
 | `plugin-src\`, `plugin\` | the service bridge plugin `dsh-widget-bridge` |
 | `tools\status.ps1` | human-readable engine status |
 | `tools\test-subagents.js` | subagent logic test on a synthetic DSH_HOME |
@@ -444,7 +448,7 @@ powershell -ExecutionPolicy Bypass -File .\release.ps1 -Version 1.0
 powershell -ExecutionPolicy Bypass -File .\tools\audit-release.ps1
 
 # installer
-powershell -ExecutionPolicy Bypass -File .\build-installer.ps1 -Version 1.0.4
+powershell -ExecutionPolicy Bypass -File .\build-installer.ps1 -Version 1.0.5
 ```
 
 `config.json`, logs, `selftest-*.png`, `dist/`, `_backup/` must not end up in the archive/repository.
@@ -474,7 +478,7 @@ git config --global user.email "<email>"
 
 git init -b main
 git add .
-git commit -m "DSH Widget 1.0.4"
+git commit -m "DSH Widget 1.0.5"
 ```
 
 Create an empty repository `dsh-widget` on GitHub, then:
@@ -487,10 +491,10 @@ git push -u origin main
 Publishing is automatic on a version tag:
 
 ```powershell
-git tag -a v1.0.4 -m "DSH Widget 1.0.4"
-git push origin v1.0.4
+git tag -a v1.0.5 -m "DSH Widget 1.0.5"
+git push origin v1.0.5
 ```
 
-`.github/workflows/release.yml` builds `dsh-widget-1.0.4.zip`, `DSHWidget-Setup-1.0.4.exe`, and
+`.github/workflows/release.yml` builds `dsh-widget-1.0.5.zip`, `DSHWidget-Setup-1.0.5.exe`, and
 `SHA256SUMS.txt`, then creates the GitHub Release. No manual asset upload and no `gh` are needed.
 The CI workflow runs the engine tests and an encoding check on every push.
