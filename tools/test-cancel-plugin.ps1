@@ -1,8 +1,10 @@
 ﻿# Тесты отмены отложенной установки bridge.
 # 1) Плагин ищется через общее обнаружение DSH (Get-DshHome): DSH_HOME, профиль
 #    пользователя и нестандартная установка, известная только деинсталлятору.
-# 2) Останавливаются только процессы скриптов из этой папки установки: одноимённые
-#    скрипты из других каталогов и копий программы остаются жить.
+#    Нечитаемый профиль — это ошибка отмены, а не «плагина нет».
+# 2) Останавливаются только процессы скриптов из этой папки установки, вместе с деревом
+#    (cmd.exe и потомки), но одноимённые скрипты из других каталогов и копий программы
+#    остаются жить.
 # Тест самодостаточен: реальный профиль DSH и установленный виджет не трогает.
 [CmdletBinding()]
 param(
@@ -58,6 +60,35 @@ function New-FakeUninstallEntry([string]$keyName, [string]$installLocation) {
     return $path
 }
 
+function New-LateInstallApp([string]$dir) {
+    # Копия установки, чей finisher запускает cmd.exe, а тот ставит плагин с задержкой:
+    # так воспроизводится гонка «cmd.exe пережил отмену».
+    New-Item -ItemType Directory -Force -Path (Join-Path $dir 'tools') | Out-Null
+    New-Item -ItemType Directory -Force -Path (Join-Path $dir 'plugin') | Out-Null
+    Copy-Item -LiteralPath (Join-Path $scriptDir 'cancel-pending-plugin.ps1') -Destination (Join-Path $dir 'tools\cancel-pending-plugin.ps1') -Force
+    Copy-Item -LiteralPath (Join-Path $scriptDir 'dsh-common.ps1') -Destination (Join-Path $dir 'tools\dsh-common.ps1') -Force
+    New-SleepCmd (Join-Path $dir 'late-install.cmd') 'late-install.marker'
+    $stub = @(
+        '$child = Join-Path (Split-Path -Parent $PSScriptRoot) ''late-install.cmd''',
+        "Start-Process -FilePath 'cmd.exe' -ArgumentList ('/c `"' + `$child + '`"') -WindowStyle Hidden",
+        'Start-Sleep -Seconds 120'
+    ) -join "`r`n"
+    Write-Utf8Bom (Join-Path $dir 'tools\finish-plugin.ps1') ($stub + "`r`n")
+    foreach ($name in @('install-plugin.ps1', 'set-mode.ps1')) {
+        Write-Utf8Bom (Join-Path $dir ('tools\' + $name)) "Start-Sleep -Seconds 120`r`n"
+    }
+}
+
+function New-SleepCmd([string]$path, [string]$markerName) {
+    # Без BOM: cmd.exe спотыкается о BOM в начале .cmd.
+    $body = @(
+        '@echo off',
+        'ping -n 4 127.0.0.1 >nul',
+        ('echo late > "%~dp0' + $markerName + '"')
+    ) -join "`r`n"
+    [IO.File]::WriteAllText($path, $body + "`r`n", (New-Object Text.UTF8Encoding($false)))
+}
+
 function Start-SleepScript([string]$scriptPath) {
     $arguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $scriptPath + '"'
     $p = Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -WindowStyle Hidden -PassThru
@@ -75,6 +106,18 @@ function Wait-Alive($p, [int]$TimeoutMs = 15000) {
     while ((Get-Date) -lt $deadline) {
         if (Test-Alive $p) { return $true }
         Start-Sleep -Milliseconds 100
+    }
+    return $false
+}
+
+function Wait-CommandLine([string]$needle, [int]$TimeoutMs = 15000) {
+    $deadline = (Get-Date).AddMilliseconds($TimeoutMs)
+    while ((Get-Date) -lt $deadline) {
+        $hit = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+            $_.CommandLine -and ($_.CommandLine.IndexOf($needle, [StringComparison]::OrdinalIgnoreCase) -ge 0)
+        })
+        if ($hit.Count -gt 0) { return $true }
+        Start-Sleep -Milliseconds 150
     }
     return $false
 }
@@ -171,9 +214,50 @@ try {
     Check 'одноимённый скрипт копии программы не тронут' (Test-Alive $foreignCopy)
     Check 'одноимённый скрипт с похожим путём не тронут' (Test-Alive $foreignPrefix)
 
-    # 6. Обычное поведение не изменилось: маркер отложенной установки снимается.
+    # 6. Нечитаемый профиль: состояние неизвестно, отмена обязана упасть.
     Write-Output ''
-    Write-Output '=== 6. маркер pending-plugin.json снимается ==='
+    Write-Output '=== 6. нечитаемый package.json ==='
+    New-FakeDshHome $portableHome $false
+    [IO.File]::WriteAllText((Join-Path $portableHome 'profiles\desktop\package.json'), '{broken', (New-Object Text.UTF8Encoding($false)))
+    $env:DSH_HOME = $portableHome
+    $env:USERPROFILE = $emptyProfile
+    $code = Invoke-Cancel $app
+    Check 'нечитаемый профиль: отмена падает (fail-closed)' ($code -eq 1) ('code=' + $code)
+
+    # 7. Поздняя установка: cmd.exe из finisher не должен пережить отмену.
+    Write-Output ''
+    Write-Output '=== 7. поздняя установка через cmd.exe ==='
+    $lateApp = Join-Path $WorkRoot 'app late'
+    New-LateInstallApp $lateApp
+    New-FakeDshHome $portableHome $false
+    $env:DSH_HOME = $portableHome
+    $env:USERPROFILE = $emptyProfile
+    $lateMarker = Join-Path $lateApp 'late-install.marker'
+    Remove-Item -LiteralPath $lateMarker -Force -ErrorAction SilentlyContinue
+    $lateChain = Start-SleepScript (Join-Path $lateApp 'tools\finish-plugin.ps1')
+    Check 'цепочка finisher -> cmd.exe запустилась' ((Wait-Alive $lateChain) -and (Wait-CommandLine 'late-install.cmd'))
+    $code = Invoke-Cancel $lateApp
+    Check 'отмена при живой цепочке cmd.exe успешна' ($code -eq 0) ('code=' + $code)
+    Start-Sleep -Seconds 6
+    Check 'cmd.exe-потомок остановлен вместе с деревом' (-not (Test-Path -LiteralPath $lateMarker))
+
+    # 8. Осиротевшая команда установки: родитель убит, но путь к plugin\ остался
+    #    в командной строке — такую команду отмена узнаёт и гасит.
+    Write-Output ''
+    Write-Output '=== 8. осиротевшая команда установки ==='
+    $orphanCmd = Join-Path $WorkRoot 'orphan.cmd'
+    New-SleepCmd $orphanCmd 'orphan.marker'
+    $orphan = Start-Process -FilePath 'cmd.exe' -ArgumentList ('/c ""' + $orphanCmd + '" "' + (Join-Path $lateApp 'plugin\dsh-widget-bridge-1.0.1.tgz') + '""') -WindowStyle Hidden -PassThru
+    $spawned.Add($orphan)
+    Check 'осиротевшая команда запустилась' ((Wait-Alive $orphan) -and (Wait-CommandLine 'orphan.cmd'))
+    $code = Invoke-Cancel $lateApp
+    Check 'отмена с осиротевшей командой успешна' ($code -eq 0) ('code=' + $code)
+    Start-Sleep -Seconds 6
+    Check 'осиротевшая команда установки остановлена' (-not (Test-Path -LiteralPath (Join-Path $WorkRoot 'orphan.marker')))
+
+    # 9. Обычное поведение не изменилось: маркер отложенной установки снимается.
+    Write-Output ''
+    Write-Output '=== 9. маркер pending-plugin.json снимается ==='
     $marker = Join-Path $app 'pending-plugin.json'
     [IO.File]::WriteAllText($marker, '{}', (New-Object Text.UTF8Encoding($false)))
     $code = Invoke-Cancel $app
