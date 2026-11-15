@@ -54,12 +54,48 @@ jobs:
           }
           [IO.File]::WriteAllLines((Join-Path $PWD 'SHA256SUMS.txt'), $rows, (New-Object Text.UTF8Encoding($false)))
 
+      # Тело релиза — только изменения этой версии: полная история остаётся в CHANGELOG.md,
+      # иначе страница релиза растягивается и кнопки скачивания уезжают вниз.
+      - name: Release notes for this version
+        shell: pwsh
+        run: |
+          $version = (Get-Content -LiteralPath VERSION -Raw -Encoding UTF8).Trim()
+          $lines = @(Get-Content -LiteralPath CHANGELOG.md -Encoding UTF8)
+          $heading = '^##\s+' + [regex]::Escape($version) + '(\s|$)'
+          $start = -1
+          for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match $heading) { $start = $i; break }
+          }
+          if ($start -lt 0) { throw "В CHANGELOG.md нет секции $version" }
+          $end = $lines.Count
+          for ($i = $start + 1; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match '^##\s') { $end = $i; break }
+          }
+          if ($end -le $start + 1) { throw "Секция $version в CHANGELOG.md пуста" }
+          $section = @($lines[($start + 1)..($end - 1)])
+          $first = 0
+          while ($first -lt $section.Count -and [string]::IsNullOrWhiteSpace($section[$first])) { $first++ }
+          if ($first -ge $section.Count) { throw "Секция $version в CHANGELOG.md пуста" }
+          $section = @($section[$first..($section.Count - 1)])
+          $repo = $env:GITHUB_REPOSITORY
+          $tag = $env:GITHUB_REF_NAME
+          $body = @(
+            ($section -join "`n").TrimEnd(),
+            '',
+            '---',
+            '',
+            "Full history: [CHANGELOG.md](https://github.com/$repo/blob/main/CHANGELOG.md)",
+            "Downloads: [installer](https://github.com/$repo/releases/download/$tag/DSHWidget-Setup-$version.exe) · [portable zip](https://github.com/$repo/releases/download/$tag/dsh-widget-$version.zip)"
+          ) -join "`n"
+          [IO.File]::WriteAllText((Join-Path $PWD 'release-body.md'), $body + "`n", (New-Object Text.UTF8Encoding($false)))
+          Write-Output ("release-body.md: версия $version, $($section.Count) строк")
+
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
           name: DSH Widget ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
-          body_path: CHANGELOG.md
+          body_path: release-body.md
           files: |
             dsh-widget-*.zip
             dist/DSHWidget-Setup-*.exe
