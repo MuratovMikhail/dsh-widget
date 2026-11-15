@@ -2,6 +2,22 @@
 
 # Changelog
 
+## 1.0.7 — 2026-11-15
+
+### Installer mode transitions
+
+- Before every install the installer cancels a pending plugin setup and removes any existing bridge. Switching to `startup` or `manual` can no longer inherit `plugin` from a previous install.
+- Cancellation removes `pending-plugin.json`, the `RunOnce` retry, stops `finish-plugin.ps1`/`install-plugin.ps1`/`set-mode.ps1` processes, and rolls back a bridge that was installed during the race.
+- The installer verifies that the bridge is absent before enabling `startup`/`manual`; if it cannot, setup stops instead of leaving two launch mechanisms.
+- Startup and desktop shortcuts are removed when the selected mode/task does not include them. `config.autostart` is kept consistent with the mode.
+- Uninstall now cancels a pending finisher before removing the bridge.
+
+### Tests
+
+- Added sequential transitions: plugin → startup, startup → manual, manual → plugin, plugin → manual, pending → manual, pending → startup.
+- Tests check config, `autostart`, bridge manifest/package, pending marker, startup shortcut and custom path together.
+- `tools/test-installer.ps1` now refuses to run if a user installation, shortcut, uninstall entry or pointer already exists; lifecycle tests must run in an isolated Windows/VM.
+
 ## 1.0.6 — 2026-11-15
 
 ### Installer audit

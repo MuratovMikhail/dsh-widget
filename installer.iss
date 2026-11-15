@@ -1,10 +1,10 @@
-; Inno Setup: установщик DSH Widget.
+﻿; Inno Setup: установщик DSH Widget.
 ; Сборка: powershell -ExecutionPolicy Bypass -File .\build-installer.ps1
 ; Требуется только на машине сборки: https://jrsoftware.org/isdl.php
 
 #define AppName "DSH Widget"
 #ifndef AppVersion
-  #define AppVersion "1.0.6"
+  #define AppVersion "1.0.7"
 #endif
 #define AppPublisher "DSH Widget"
 #define AppId "{{B7E1C0D4-5A62-4F0B-9A3E-2D7C6B1F0A55}"
