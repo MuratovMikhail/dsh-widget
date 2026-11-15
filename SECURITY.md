@@ -40,7 +40,7 @@ own data.
 
 ## Installer
 
-The 1.0.0 installer is **not code-signed**. Windows SmartScreen may show
+The 1.0.4 installer is **not code-signed**. Windows SmartScreen may show
 "Unknown publisher". Verify the SHA-256 checksum published with the GitHub release
 before running it.
 

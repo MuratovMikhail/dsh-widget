@@ -396,7 +396,6 @@ Invoke-RestMethod http://127.0.0.1:45871/status | ConvertTo-Json -Depth 6
 | `config.json` | settings (created on the first change, not included in the archive) |
 | `docs\` | previews for the README |
 | `LICENSE`, `CHANGELOG.md` | the MIT license and the version history |
-| `CODE_SIGNING_POLICY.md` | code signing policy for the SignPath Foundation program |
 | `PRIVACY.md` | privacy policy: local data and the optional balance request |
 | `THIRD_PARTY_NOTICES.md` | third-party asset notices |
 
@@ -434,18 +433,6 @@ The code is MIT, see [LICENSE](LICENSE). DeepSeek Harness and its name belong to
 this is an unofficial project. The sound `assets\notify.wav` is under the Pixabay Content License (see the "Notification sound" section).
 
 ---
-
-## Code signing policy
-
-Free code signing provided by [SignPath.io](https://about.signpath.io),
-certificate by [SignPath Foundation](https://signpath.org).
-
-See [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md) for the signed artifact,
-team roles, build provenance, and the manual approval process. The privacy
-policy is in [PRIVACY.md](PRIVACY.md); third-party assets are listed in
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-The published `1.0.4` installer is not code-signed yet; the first SignPath-signed build will follow.
 
 ## Contributing
 
