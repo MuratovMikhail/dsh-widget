@@ -4,8 +4,20 @@ import fs from 'node:fs'
 
 export const name = 'dsh-widget-bridge'
 
-function widgetDir() {
+export function widgetDir() {
   if (process.env.DSH_WIDGET_DIR) return process.env.DSH_WIDGET_DIR
+
+  // Установщик может поставить виджет в произвольную папку. Стабильный
+  // указатель лежит в %LOCALAPPDATA%\DSH Widget\install-dir.txt.
+  try {
+    const base = process.env.LOCALAPPDATA || ''
+    if (base) {
+      const pointer = path.join(base, 'DSH Widget', 'install-dir.txt')
+      const candidate = fs.readFileSync(pointer, 'utf8').trim()
+      if (candidate && fs.existsSync(path.join(candidate, 'widget-ui.ps1'))) return candidate
+    }
+  } catch { }
+
   const base = process.env.LOCALAPPDATA || ''
   return path.join(base, 'Programs', 'DSH Widget')
 }

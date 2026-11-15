@@ -1,4 +1,4 @@
-[English](README.md) · **Русский** · [简体中文](README.zh-CN.md)
+﻿[English](README.md) · **Русский** · [简体中文](README.zh-CN.md)
 
 [![CI](https://github.com/MuratovMikhail/dsh-widget/actions/workflows/ci.yml/badge.svg)](https://github.com/MuratovMikhail/dsh-widget/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/MuratovMikhail/dsh-widget)](https://github.com/MuratovMikhail/dsh-widget/releases/latest)
@@ -69,7 +69,7 @@
 
 ### Установщик (рекомендуется)
 
-`DSHWidget-Setup-1.0.5.exe` (около 3 МБ) — без прав администратора, ставится в
+`DSHWidget-Setup-1.0.6.exe` (около 3 МБ) — без прав администратора, ставится в
 `%LOCALAPPDATA%\Programs\DSH Widget`.
 
 1. Запустить; при предупреждении SmartScreen «Неизвестный издатель» — «Подробнее» → «Выполнить всё равно»
@@ -385,8 +385,8 @@ Invoke-RestMethod http://127.0.0.1:45871/status | ConvertTo-Json -Depth 6
 | `assets\notify.wav` | встроенный звук завершения |
 | `start-widget.vbs` | запуск без окна консоли |
 | `install.ps1` | ярлыки в «Пуск»/на рабочем столе, автозапуск |
-| `release.ps1` | сборка `dsh-widget-1.0.5.zip` без личных данных |
-| `build-installer.ps1`, `installer.iss` | сборка `dist\DSHWidget-Setup-1.0.5.exe` (нужен Inno Setup) |
+| `release.ps1` | сборка `dsh-widget-1.0.6.zip` без личных данных |
+| `build-installer.ps1`, `installer.iss` | сборка `dist\DSHWidget-Setup-1.0.6.exe` (нужен Inno Setup) |
 | `plugin-src\`, `plugin\` | служебный плагин-мостик `dsh-widget-bridge` |
 | `tools\status.ps1` | человекочитаемый статус движка |
 | `tools\test-subagents.js` | тест логики субагентов на синтетическом DSH_HOME |
@@ -420,7 +420,7 @@ powershell -ExecutionPolicy Bypass -File .\release.ps1 -Version 1.0
 powershell -ExecutionPolicy Bypass -File .\tools\audit-release.ps1
 
 # установщик
-powershell -ExecutionPolicy Bypass -File .\build-installer.ps1 -Version 1.0.5
+powershell -ExecutionPolicy Bypass -File .\build-installer.ps1 -Version 1.0.6
 ```
 
 В архив/репозиторий не должны попадать `config.json`, логи, `selftest-*.png`, `dist/`, `_backup/`.
@@ -450,7 +450,7 @@ git config --global user.email "<email>"
 
 git init -b main
 git add .
-git commit -m "DSH Widget 1.0.5"
+git commit -m "DSH Widget 1.0.6"
 ```
 
 Создайте на GitHub пустой репозиторий `dsh-widget`, затем:
@@ -463,10 +463,10 @@ git push -u origin main
 Публикация запускается тегом версии:
 
 ```powershell
-git tag -a v1.0.5 -m "DSH Widget 1.0.5"
-git push origin v1.0.5
+git tag -a v1.0.6 -m "DSH Widget 1.0.6"
+git push origin v1.0.6
 ```
 
-`.github/workflows/release.yml` соберёт `dsh-widget-1.0.5.zip`, `DSHWidget-Setup-1.0.5.exe` и
+`.github/workflows/release.yml` соберёт `dsh-widget-1.0.6.zip`, `DSHWidget-Setup-1.0.6.exe` и
 `SHA256SUMS.txt`, затем создаст GitHub Release. Вручную прикреплять файлы и ставить `gh` не нужно.
 CI-проверка запускает тесты движка и проверку кодировки при каждом push.

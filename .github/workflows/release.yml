@@ -28,23 +28,26 @@ jobs:
           node tools/test-selection.js
           node tools/test-ack.js
           node tools/test-content.js
+          node tools/test-widgetdir.mjs
 
       - name: Install Inno Setup
         shell: pwsh
         run: choco install innosetup --no-progress -y
 
-      - name: Build portable archive
+      - name: Build portable archive and installer
         shell: powershell
-        run: .\release.ps1 -Version 1.0.5
-
-      - name: Build installer
-        shell: powershell
-        run: .\build-installer.ps1 -Version 1.0.5
+        run: |
+          .\release.ps1
+          .\build-installer.ps1
+          $version = (Get-Content -LiteralPath VERSION -Raw -Encoding UTF8).Trim()
+          if (-not (Test-Path -LiteralPath "dsh-widget-$version.zip")) { throw "ZIP not found for $version" }
+          if (-not (Test-Path -LiteralPath "dist\DSHWidget-Setup-$version.exe")) { throw "EXE not found for $version" }
 
       - name: SHA256 checksums
         shell: powershell
         run: |
-          $files = @('dsh-widget-1.0.5.zip', 'dist\DSHWidget-Setup-1.0.5.exe')
+          $version = (Get-Content -LiteralPath VERSION -Raw -Encoding UTF8).Trim()
+          $files = @("dsh-widget-$version.zip", "dist\DSHWidget-Setup-$version.exe")
           $rows = foreach ($f in $files) {
             $h = Get-FileHash -LiteralPath $f -Algorithm SHA256
             $h.Hash + '  ' + [IO.Path]::GetFileName($f)
@@ -54,10 +57,10 @@ jobs:
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          name: DSH Widget 1.0.5
+          name: DSH Widget ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
           body_path: CHANGELOG.md
           files: |
-            dsh-widget-1.0.5.zip
-            dist/DSHWidget-Setup-1.0.5.exe
+            dsh-widget-*.zip
+            dist/DSHWidget-Setup-*.exe
             SHA256SUMS.txt
