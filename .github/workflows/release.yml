@@ -35,16 +35,16 @@ jobs:
 
       - name: Build portable archive
         shell: powershell
-        run: .\release.ps1 -Version 1.0.3
+        run: .\release.ps1 -Version 1.0.4
 
       - name: Build installer
         shell: powershell
-        run: .\build-installer.ps1 -Version 1.0.3
+        run: .\build-installer.ps1 -Version 1.0.4
 
       - name: SHA256 checksums
         shell: powershell
         run: |
-          $files = @('dsh-widget-1.0.3.zip', 'dist\DSHWidget-Setup-1.0.3.exe')
+          $files = @('dsh-widget-1.0.4.zip', 'dist\DSHWidget-Setup-1.0.4.exe')
           $rows = foreach ($f in $files) {
             $h = Get-FileHash -LiteralPath $f -Algorithm SHA256
             $h.Hash + '  ' + [IO.Path]::GetFileName($f)
@@ -54,10 +54,10 @@ jobs:
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          name: DSH Widget 1.0.3
+          name: DSH Widget 1.0.4
           tag_name: ${{ github.ref_name }}
           body_path: CHANGELOG.md
           files: |
-            dsh-widget-1.0.3.zip
-            dist/DSHWidget-Setup-1.0.3.exe
+            dsh-widget-1.0.4.zip
+            dist/DSHWidget-Setup-1.0.4.exe
             SHA256SUMS.txt

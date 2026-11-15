@@ -2,6 +2,18 @@
 
 # Changelog
 
+## 1.0.4 — 2026-11-15
+
+### Fixed
+
+- A failing `dsh` CLI no longer terminates the plugin installer before the direct fallback: stderr is treated as output, not as a fatal PowerShell error.
+- DSH home discovery now also checks uninstall registry entries, so a portable install with the profile next to the executable is found when `InstallLocation` is registered.
+- Plugin failure messages no longer block `/VERYSILENT` installs; they are written to the setup log instead of showing a modal dialog.
+
+### Verified
+
+- Local matrix: custom `DSH_HOME`, default profile, no profile, existing plugin, manual mode, registry-based portable profile, malformed profile. All installer exit codes are 0 and `launchMode` matches the actual bundle state.
+
 ## 1.0.3 — 2026-11-14
 
 ### Fixed

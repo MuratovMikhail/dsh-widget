@@ -4,7 +4,7 @@
 
 #define AppName "DSH Widget"
 #ifndef AppVersion
-  #define AppVersion "1.0.3"
+  #define AppVersion "1.0.4"
 #endif
 #define AppPublisher "DSH Widget"
 #define AppId "{{B7E1C0D4-5A62-4F0B-9A3E-2D7C6B1F0A55}"
@@ -84,6 +84,13 @@ Type: files; Name: "{app}\runtime.json"
 Type: files; Name: "{app}\bridge-stderr.log"
 
 [Code]
+procedure Notify(const Text: String);
+begin
+  if WizardSilent then
+    Log(Text)
+  else
+    MsgBox(Text, mbInformation, MB_OK);
+end;
 function DshNodeFound: Boolean;
 begin
   // Проверяем оба известных места, где DSH держит node.exe.
@@ -109,17 +116,17 @@ begin
                 ExpandConstant('{app}\tools\install-plugin.ps1') + '" -Quiet';
       if not Exec('powershell.exe', Params, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
       begin
-        MsgBox(ExpandConstant('{cm:PluginStartFail}'), mbInformation, MB_OK);
+        Notify(ExpandConstant('{cm:PluginStartFail}'));
         Mode := 'manual';
       end
       else if ResultCode = 3 then
       begin
-        MsgBox(ExpandConstant('{cm:PluginNoDsh}'), mbInformation, MB_OK);
+        Notify(ExpandConstant('{cm:PluginNoDsh}'));
         Mode := 'manual';
       end
       else if ResultCode <> 0 then
       begin
-        MsgBox(ExpandConstant('{cm:PluginInstallCode}') + ' ' + IntToStr(ResultCode), mbInformation, MB_OK);
+        Notify(ExpandConstant('{cm:PluginInstallCode}') + ' ' + IntToStr(ResultCode));
         Mode := 'manual';
       end;
     end;
@@ -135,7 +142,7 @@ function InitializeSetup: Boolean;
 begin
   Result := True;
   if not DshNodeFound then
-    MsgBox(ExpandConstant('{cm:NodeMissing}'), mbInformation, MB_OK);
+    Notify(ExpandConstant('{cm:NodeMissing}'));
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
