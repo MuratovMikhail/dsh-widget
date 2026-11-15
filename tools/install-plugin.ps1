@@ -17,88 +17,8 @@ $ErrorActionPreference = 'Stop'
 function Say([string]$text) { if (-not $Quiet) { Write-Output $text } }
 
 $bundle = '@local/dsh-widget-bridge'
-$desktopName = 'DeepSeek Harness.exe'
-
-function Get-DshHome {
-    $candidates = New-Object System.Collections.Generic.List[string]
-    if ($env:DSH_HOME) { [void]$candidates.Add($env:DSH_HOME) }
-    if ($env:USERPROFILE) { [void]$candidates.Add((Join-Path $env:USERPROFILE '.dsh')) }
-
-    # Портативная/нестандартная установка: смотрим, откуда запущен DSH.
-    foreach ($name in @($desktopName, 'dsh.exe')) {
-        try {
-            $procs = Get-CimInstance Win32_Process -Filter ("Name='" + $name + "'") -ErrorAction SilentlyContinue
-            foreach ($p in @($procs)) {
-                if (-not $p -or -not $p.ExecutablePath) { continue }
-                $exeDir = Split-Path -Parent $p.ExecutablePath
-                [void]$candidates.Add((Join-Path $exeDir '.dsh'))
-                [void]$candidates.Add((Join-Path (Split-Path -Parent $exeDir) '.dsh'))
-            }
-        } catch { }
-    }
-
-    foreach ($root in @(
-        'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
-        'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
-        'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
-    )) {
-        try {
-            Get-ItemProperty $root -ErrorAction SilentlyContinue |
-                Where-Object { $_.DisplayName -like '*DeepSeek Harness*' -and $_.InstallLocation } |
-                ForEach-Object { [void]$candidates.Add((Join-Path $_.InstallLocation '.dsh')) }
-        } catch { }
-    }
-
-    foreach ($c in ($candidates | Select-Object -Unique)) {
-        if (Test-Path -LiteralPath (Join-Path $c ('profiles\' + $Profile))) { return $c }
-    }
-    return $null
-}
-
-function Get-DshCli([string]$dshHome) {
-    $candidates = New-Object System.Collections.Generic.List[string]
-    if ($env:DSH_CLI) { [void]$candidates.Add($env:DSH_CLI) }
-    if ($env:LOCALAPPDATA) {
-        [void]$candidates.Add((Join-Path $env:LOCALAPPDATA 'Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd'))
-    }
-    if ($dshHome) {
-        [void]$candidates.Add((Join-Path $dshHome 'dsh-runtimes\dsh-primary-runtime\cli\bin\dsh.cmd'))
-    }
-
-    foreach ($name in @($desktopName, 'dsh.exe')) {
-        try {
-            $procs = Get-CimInstance Win32_Process -Filter ("Name='" + $name + "'") -ErrorAction SilentlyContinue
-            foreach ($p in @($procs)) {
-                if (-not $p -or -not $p.ExecutablePath) { continue }
-                $exeDir = Split-Path -Parent $p.ExecutablePath
-                [void]$candidates.Add((Join-Path $exeDir 'resources\runtime\cli\bin\dsh.cmd'))
-            }
-        } catch { }
-    }
-
-    # Установка за пределами %LOCALAPPDATA% обычно видна в Uninstall.
-    foreach ($root in @(
-        'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
-        'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
-        'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
-    )) {
-        try {
-            Get-ItemProperty $root -ErrorAction SilentlyContinue |
-                Where-Object { $_.DisplayName -like '*DeepSeek Harness*' -and $_.InstallLocation } |
-                ForEach-Object {
-                    [void]$candidates.Add((Join-Path $_.InstallLocation 'resources\runtime\cli\bin\dsh.cmd'))
-                }
-        } catch { }
-    }
-
-    $cmd = Get-Command dsh.cmd -ErrorAction SilentlyContinue
-    if ($cmd) { [void]$candidates.Add($cmd.Source) }
-
-    foreach ($c in ($candidates | Select-Object -Unique)) {
-        if ($c -and (Test-Path -LiteralPath $c)) { return $c }
-    }
-    return $null
-}
+$pluginVersion = '1.0.1'
+. (Join-Path $PSScriptRoot 'dsh-common.ps1')
 
 function Install-PluginDirect([string]$profileDir, [string]$packagePath) {
     $dest = Join-Path $profileDir 'node_modules\@local\dsh-widget-bridge'
@@ -149,18 +69,26 @@ if (-not (Test-Path -LiteralPath $profileDir)) {
     exit 3
 }
 
-if (-not $Tgz) { $Tgz = Join-Path (Split-Path -Parent $PSScriptRoot) 'plugin\dsh-widget-bridge-1.0.0.tgz' }
+if (-not $Tgz) { $Tgz = Join-Path (Split-Path -Parent $PSScriptRoot) 'plugin\dsh-widget-bridge-1.0.1.tgz' }
 if (-not (Test-Path -LiteralPath $Tgz)) {
     Say ('не найден пакет плагина: ' + $Tgz)
     exit 3
 }
 
-# Уже включён — ничего не делаем.
+# Уже включён и нужной версии — ничего не делаем.
 try {
     $data = Get-Content -LiteralPath $manifest -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($data -and $data.dsh -and $data.dsh.profile -and (@($data.dsh.profile.bundles) -contains $bundle)) {
-        Say 'плагин уже установлен'
-        exit 0
+        $installedVersion = $null
+        $pkgManifest = Join-Path $profileDir 'node_modules\@local\dsh-widget-bridge\package.json'
+        if (Test-Path -LiteralPath $pkgManifest) {
+            try { $installedVersion = [string](Get-Content -LiteralPath $pkgManifest -Raw -Encoding UTF8 | ConvertFrom-Json).version } catch { }
+        }
+        if ($installedVersion -eq $pluginVersion) {
+            Say 'плагин уже установлен'
+            exit 0
+        }
+        Say ('обновляю плагин: ' + $installedVersion + ' -> ' + $pluginVersion)
     }
 } catch { }
 
@@ -176,13 +104,18 @@ if ($cli) {
         $ok = $false
         try {
             $data = Get-Content -LiteralPath $manifest -Raw -Encoding UTF8 | ConvertFrom-Json
-            $ok = @($data.dsh.profile.bundles) -contains $bundle
+            $pkgManifest = Join-Path $profileDir 'node_modules\@local\dsh-widget-bridge\package.json'
+            $installedVersion = $null
+            if (Test-Path -LiteralPath $pkgManifest) {
+                try { $installedVersion = [string](Get-Content -LiteralPath $pkgManifest -Raw -Encoding UTF8 | ConvertFrom-Json).version } catch { }
+            }
+            $ok = (@($data.dsh.profile.bundles) -contains $bundle) -and ($installedVersion -eq $pluginVersion)
         } catch { }
         if ($ok) {
             Say 'готово: виджет будет запускаться вместе с DSH'
             exit 0
         }
-        Say 'CLI не добавил бандл в профиль, ставлю напрямую'
+        Say 'CLI не обновил плагин до нужной версии, ставлю напрямую'
     } else {
         Say ('CLI не сработал, код ' + $code + '; ставлю напрямую')
         $out | Select-Object -Last 4 | ForEach-Object { Say ('  ' + $_) }

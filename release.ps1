@@ -11,13 +11,20 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$Version = '1.0',
+    [string]$Version = '',
     [string]$OutDir = ''
 )
 
 $ErrorActionPreference = 'Stop'
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $OutDir) { $OutDir = $scriptDir }
+if (-not $Version) {
+    $versionFile = Join-Path $scriptDir 'VERSION'
+    if (Test-Path -LiteralPath $versionFile) {
+        $Version = (Get-Content -LiteralPath $versionFile -Raw -Encoding UTF8).Trim()
+    }
+}
+if (-not $Version) { throw 'Не задана версия: создайте VERSION или передайте -Version' }
 
 # Белый список: всё, что реально нужно для работы виджета.
 $files = @(
@@ -32,10 +39,14 @@ $files = @(
     'locale\ru.json',
     'locale\zh-CN.json',
     'tools\restart-widget.ps1',
-    'plugin\dsh-widget-bridge-1.0.0.tgz',
+    'plugin\dsh-widget-bridge-1.0.1.tgz',
     'tools\install-plugin.ps1',
     'tools\finish-plugin.ps1',
     'tools\remove-plugin.ps1',
+    'tools\dsh-common.ps1',
+    'tools\set-mode.ps1',
+    'tools\write-pointer.ps1',
+    'VERSION',
     'README.md',
     'README.ru.md',
     'README.zh-CN.md',

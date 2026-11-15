@@ -26,6 +26,7 @@ jobs:
           node tools/test-selection.js
           node tools/test-ack.js
           node tools/test-content.js
+          node tools/test-widgetdir.mjs
 
       - name: Проверить кодировку и синтаксис PowerShell
         shell: pwsh
@@ -37,12 +38,50 @@ jobs:
               Write-Error "Нет UTF-8 BOM: $($f.FullName)"
               $failed = $true
             }
-          }
-          $tokens = $null
-          $errors = $null
-          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'widget-ui.ps1'), [ref]$tokens, [ref]$errors) | Out-Null
-          if ($errors.Count -gt 0) {
-            $errors | ForEach-Object { Write-Error $_.Message }
-            $failed = $true
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error "$($f.FullName): $($_.Message)" }
+              $failed = $true
+            }
           }
           if ($failed) { exit 1 }
+
+  installer:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    needs: engine-and-scripts
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          .\build-installer.ps1
+          $version = (Get-Content -LiteralPath VERSION -Raw -Encoding UTF8).Trim()
+          if (-not (Get-Item -LiteralPath "dist\DSHWidget-Setup-$version.exe" -ErrorAction SilentlyContinue)) {
+            throw "Не собран dist\DSHWidget-Setup-$version.exe"
+          }
+
+      - name: Installer lifecycle tests
+        shell: pwsh
+        run: |
+          $version = (Get-Content -LiteralPath VERSION -Raw -Encoding UTF8).Trim()
+          .\tools\test-installer.ps1 -Exe "dist\DSHWidget-Setup-$version.exe"
+
+      - name: Portable package contents
+        shell: pwsh
+        run: |
+          .\release.ps1
+          $version = (Get-Content -LiteralPath VERSION -Raw -Encoding UTF8).Trim()
+          .\tools\test-package.ps1 -Zip "dsh-widget-$version.zip"

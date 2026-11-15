@@ -1,4 +1,4 @@
-﻿; Inno Setup: установщик DSH Widget.
+; Inno Setup: установщик DSH Widget.
 ; Сборка: powershell -ExecutionPolicy Bypass -File .\build-installer.ps1
 ; Требуется только на машине сборки: https://jrsoftware.org/isdl.php
 
@@ -50,6 +50,7 @@ Source: "widget-ui.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "widget-engine.js"; DestDir: "{app}"; Flags: ignoreversion
 Source: "start-widget.vbs"; DestDir: "{app}"; Flags: ignoreversion
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "VERSION"; DestDir: "{app}"; Flags: ignoreversion
 Source: "README.ru.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "README.zh-CN.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
@@ -60,12 +61,15 @@ Source: "assets\DSHWidget-Tray.ico"; DestDir: "{app}\assets"; Flags: ignoreversi
 Source: "assets\notify.wav"; DestDir: "{app}\assets"; Flags: ignoreversion
 Source: "locale\*.json"; DestDir: "{app}\locale"; Flags: ignoreversion
 Source: "tools\stop-widget.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
+Source: "tools\status.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
+Source: "tools\write-pointer.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
 Source: "tools\restart-widget.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
+Source: "tools\dsh-common.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
 Source: "tools\install-plugin.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
 Source: "tools\finish-plugin.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
 Source: "tools\remove-plugin.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
 Source: "tools\set-mode.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
-Source: "plugin\dsh-widget-bridge-1.0.0.tgz"; DestDir: "{app}\plugin"; Flags: ignoreversion
+Source: "plugin\dsh-widget-bridge-1.0.1.tgz"; DestDir: "{app}\plugin"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{sys}\wscript.exe"; Parameters: """{app}\start-widget.vbs"""; IconFilename: "{app}\assets\DSHWidget.ico"; WorkingDir: "{app}"
@@ -85,6 +89,8 @@ Type: files; Name: "{app}\widget.log"
 Type: files; Name: "{app}\runtime.json"
 Type: files; Name: "{app}\bridge-stderr.log"
 Type: files; Name: "{app}\finish-plugin.log"
+Type: files; Name: "{app}\pending-plugin.json"
+Type: files; Name: "{localappdata}\DSH Widget\install-dir.txt"
 
 [Code]
 procedure Notify(const Text: String);
@@ -101,6 +107,29 @@ begin
          or FileExists(GetEnv('USERPROFILE') + '\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe');
 end;
 
+procedure WriteInstallPointer;
+var
+  ResultCode: Integer;
+  Params: String;
+begin
+  // Плагин запускается из профиля DSH и не знает, куда пользователь
+  // поставил виджет. Указатель пишет PowerShell в UTF-8 без BOM.
+  Params := '-NoProfile -ExecutionPolicy Bypass -File "' +
+            ExpandConstant('{app}\tools\write-pointer.ps1') + '" -AppDir "' +
+            ExpandConstant('{app}') + '"';
+  if not Exec('powershell.exe', Params, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    Log('Could not start install pointer writer');
+end;
+
+procedure WritePendingMarker;
+var
+  FileName: String;
+begin
+  FileName := ExpandConstant('{app}\pending-plugin.json');
+  if not SaveStringToFile(FileName, '{"requestedMode":"plugin"}', False) then
+    Log('Could not write pending plugin marker: ' + FileName);
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   ResultCode: Integer;
@@ -111,6 +140,8 @@ begin
   if CurStep = ssPostInstall then
   begin
     StartPending := False;
+    WriteInstallPointer;
+
     if WizardIsTaskSelected('mode_plugin') then Mode := 'plugin'
     else if WizardIsTaskSelected('mode_startup') then Mode := 'startup'
     else Mode := 'manual';
@@ -147,6 +178,7 @@ begin
     // закрытие DSH, затем ставим плагин и переключаем режим на plugin.
     if StartPending then
     begin
+      WritePendingMarker;
       Params := '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' +
                 ExpandConstant('{app}\tools\finish-plugin.ps1') + '" -TimeoutSec 1800';
       if not Exec('powershell.exe', Params, '', SW_HIDE, ewNoWait, ResultCode) then
@@ -183,12 +215,20 @@ begin
   begin
     if FileExists(ExpandConstant('{app}\config.json')) then
     begin
-      Answer := MsgBox('Удалить настройки виджета (config.json)?' + #13#10 +
-                       'Если оставить, они пригодятся при повторной установке.',
-                       mbConfirmation, MB_YESNO);
-      if Answer = IDYES then
-        DeleteFile(ExpandConstant('{app}\config.json'));
+      if UninstallSilent then
+        DeleteFile(ExpandConstant('{app}\config.json'))
+      else
+      begin
+        Answer := MsgBox('Удалить настройки виджета (config.json)?' + #13#10 +
+                         'Если оставить, они пригодятся при повторной установке.',
+                         mbConfirmation, MB_YESNO);
+        if Answer = IDYES then
+          DeleteFile(ExpandConstant('{app}\config.json'));
+      end;
     end;
+    DeleteFile(ExpandConstant('{app}\pending-plugin.json'));
+    DeleteFile(ExpandConstant('{localappdata}\DSH Widget\install-dir.txt'));
+    RemoveDir(ExpandConstant('{localappdata}\DSH Widget'));
     // Пустую папку после себя не оставляем.
     RemoveDir(ExpandConstant('{app}'));
   end;

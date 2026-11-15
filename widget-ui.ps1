@@ -32,6 +32,13 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $script:configPath = Join-Path $scriptDir 'config.json'
 $script:enginePath = Join-Path $scriptDir 'widget-engine.js'
 $script:appVersion = '1.0.5'
+$versionFile = Join-Path $scriptDir 'VERSION'
+if (Test-Path -LiteralPath $versionFile) {
+    try {
+        $fileVersion = (Get-Content -LiteralPath $versionFile -Raw -Encoding UTF8).Trim()
+        if ($fileVersion) { $script:appVersion = $fileVersion }
+    } catch { }
+}
 $script:author = 'Муратов Михаил'
 # Заполним, когда появится доступ к GitHub (и будет известен точный URL репозитория).
 $script:repoUrl = 'https://github.com/MuratovMikhail/dsh-widget'
@@ -1178,7 +1185,7 @@ function New-DemoSnapshot([string]$demoState) {
     }
 
     $snap = [ordered]@{
-        ok = $true; version = '1.0.5'; now = $nowMs; dshHome = 'C:\dsh-home'
+        ok = $true; version = $script:appVersion; now = $nowMs; dshHome = 'C:\dsh-home'
         sessionsTracked = 1 + $demoSessions.Count; workingCount = $workingCount; activeCount = $activeCount
         primary = $primary; pinnedId = $null; lastCompletion = $null; sessions = $demoSessions
         balance = @{ enabled = $true; ok = $true; source = 'platform'; currency = 'CNY'; symbol = '¥'; amount = 42.00; bonus = 0 }
@@ -2247,6 +2254,8 @@ function Show-SettingsWindow {
         $script:config.language = $langValues[[int]$ddLang.Index]
         $script:config.exitWhenDshClosedMin = $(if ($mode -eq 'plugin') { 5 } else { 0 })
 
+        # Пользователь явно выбрал режим — отложенный finisher не должен его перезаписать.
+        Remove-Item -LiteralPath (Join-Path $scriptDir 'pending-plugin.json') -Force -ErrorAction SilentlyContinue
         Save-Config
 
         if ([string]$script:config.language -ne $oldLanguage) {

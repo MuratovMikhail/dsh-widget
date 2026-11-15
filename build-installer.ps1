@@ -8,6 +8,14 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $issPath = Join-Path $scriptDir 'installer.iss'
 $distDir = Join-Path $scriptDir 'dist'
 
+if (-not $Version) {
+    $versionFile = Join-Path $scriptDir 'VERSION'
+    if (Test-Path -LiteralPath $versionFile) {
+        $Version = (Get-Content -LiteralPath $versionFile -Raw -Encoding UTF8).Trim()
+    }
+}
+if (-not $Version) { throw 'Не задана версия: создайте VERSION или передайте -Version' }
+
 if (-not (Test-Path -LiteralPath $issPath)) { throw "Нет installer.iss рядом: $issPath" }
 
 $required = @(
