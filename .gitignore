@@ -13,3 +13,4 @@ widget.log
 dist/
 runtime.json
 *.exe
+release-body.md
