@@ -23,13 +23,15 @@ $exitMin = if ($Mode -eq 'plugin') { 5 } else { 0 }
 
 $modeChanged = $true
 $hasExit = $false
+$hasAutostart = $false
 $wantAutostart = ($Mode -eq 'startup')
 $currentAutostart = $false
 if ($current) {
     $modeChanged = ([string]$current.launchMode -ne $Mode)
     $hasExit = ($null -ne $current.exitWhenDshClosedMin)
+    $hasAutostart = ($null -ne $current.autostart)
     $currentAutostart = [bool]$current.autostart
-    if (-not $modeChanged -and $hasExit -and ($currentAutostart -eq $wantAutostart)) { exit 0 }
+    if (-not $modeChanged -and $hasExit -and $hasAutostart -and ($currentAutostart -eq $wantAutostart)) { exit 0 }
 }
 
 $config = [ordered]@{ }

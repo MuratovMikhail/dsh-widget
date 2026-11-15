@@ -222,12 +222,14 @@ try {
     $before = Get-Config
     if ($before) {
         $before | Add-Member -NotePropertyName updateSentinel -NotePropertyValue 'keep' -Force
+        if ($before.PSObject.Properties['autostart']) { $before.PSObject.Properties.Remove('autostart') }
         [IO.File]::WriteAllText((Join-Path $appDir 'config.json'), ($before | ConvertTo-Json -Depth 10), (New-Object Text.UTF8Encoding($false)))
     }
     $code = Run-Installer 'mode_plugin' 'update-after'
     Check 'update: exit 0' ($code -eq 0) ('code=' + $code)
     $after = Get-Config
     Check 'update: режим сохранился' ($after -and [string]$after.launchMode -eq 'plugin')
+    Check 'update: autostart восстановлен' ($after -and [bool]$after.autostart -eq $false)
     Check 'update: произвольное поле не потерялось' ($after -and [string]$after.updateSentinel -eq 'keep')
 
     # 3. Удаление и проверка остатков.

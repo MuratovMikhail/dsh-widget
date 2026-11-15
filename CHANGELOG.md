@@ -2,6 +2,13 @@
 
 # Changelog
 
+## 1.0.8 — 2026-11-15
+
+### Fixed
+
+- `set-mode.ps1` now treats a missing `autostart` field as a change instead of returning early. Upgrading a 1.0.6 config adds `autostart` consistently when the mode is unchanged.
+- The update lifecycle test removes `autostart` from a legacy config and verifies that the installer restores it.
+
 ## 1.0.7 — 2026-11-15
 
 ### Installer mode transitions
