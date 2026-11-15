@@ -216,7 +216,11 @@ try {
         Check 'before-dsh: pending marker создан' (Test-Path -LiteralPath (Join-Path $appDir 'pending-plugin.json'))
         New-Profile
         $deadline = (Get-Date).AddSeconds(30)
-        while ((Get-Date) -lt $deadline -and -not (Has-Bundle)) { Start-Sleep -Seconds 2 }
+        while ((Get-Date) -lt $deadline) {
+            $cfg = Get-Config
+            if ((Has-Bundle) -and $cfg -and [string]$cfg.launchMode -eq 'plugin') { break }
+            Start-Sleep -Seconds 2
+        }
         Check 'before-dsh: finisher поставил bridge' (Has-Bundle)
         Check 'before-dsh: finisher поставил plugin' ($null -ne (Get-Config) -and [string](Get-Config).launchMode -eq 'plugin')
     }
