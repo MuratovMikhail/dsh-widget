@@ -37,6 +37,18 @@ function Get-DshHome {
         } catch { }
     }
 
+    foreach ($root in @(
+        'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
+        'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
+        'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
+    )) {
+        try {
+            Get-ItemProperty $root -ErrorAction SilentlyContinue |
+                Where-Object { $_.DisplayName -like '*DeepSeek Harness*' -and $_.InstallLocation } |
+                ForEach-Object { [void]$candidates.Add((Join-Path $_.InstallLocation '.dsh')) }
+        } catch { }
+    }
+
     foreach ($c in ($candidates | Select-Object -Unique)) {
         if (Test-Path -LiteralPath (Join-Path $c ('profiles\' + $Profile))) { return $c }
     }
@@ -155,8 +167,11 @@ try {
 $cli = if ($Direct) { $null } else { Get-DshCli $dshHome }
 if ($cli) {
     Say ('ставлю пакет через DSH CLI: ' + $cli)
+    $oldEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     $out = & cmd.exe /c "`"$cli`" plugin --profile $Profile add `"$Tgz`"" 2>&1
     $code = $LASTEXITCODE
+    $ErrorActionPreference = $oldEap
     if ($code -eq 0) {
         $ok = $false
         try {
