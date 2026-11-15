@@ -69,12 +69,13 @@
 
 ### Установщик (рекомендуется)
 
-`DSHWidget-Setup-1.0.4.exe` (около 3 МБ) — без прав администратора, ставится в
+`DSHWidget-Setup-1.0.5.exe` (около 3 МБ) — без прав администратора, ставится в
 `%LOCALAPPDATA%\Programs\DSH Widget`.
 
 1. Запустить; при предупреждении SmartScreen «Неизвестный издатель» — «Подробнее» → «Выполнить всё равно»
    (файл не подписан сертификатом).
-2. Выбрать режим запуска (см. ниже), при желании — ярлык на рабочем столе.
+2. Выбрать папку установки (по умолчанию `%LOCALAPPDATA%\Programs\DSH Widget`), режим запуска
+   (см. ниже), при желании — ярлык на рабочем столе.
 3. Удаление — «Параметры → Приложения → DSH Widget → Удалить». Перед удалением виджет закрывается,
    ярлыки и автозапуск убираются; про `config.json` установщик спросит отдельно.
 
@@ -84,8 +85,11 @@
 | **При входе в Windows** | ярлык в «Автозагрузке»: виджет работает постоянно, в том числе когда DSH закрыт. Плагин не ставится |
 | **Только вручную** | никакого автозапуска: виджет запускается ярлыком из «Пуска» |
 
-Если DSH на компьютере ещё ни разу не открывали, плагин пропускается — виджет работает отдельно,
-а плагин можно поставить позже: `tools\install-plugin.ps1`.
+Если DSH на компьютере ещё ни разу не открывали, установщик всё равно завершится: фоновый finisher
+дождётся первого профиля DSH, поставит bridge после закрытия DSH и сам включит режим
+«Вместе с DeepSeek Harness». Если виджет или компьютер перезагрузят раньше, попытка повторится
+при следующем входе через `RunOnce`. Если и это не сработало — запустите установщик ещё раз,
+он поставит плагин сразу.
 
 ### Из архива / исходников
 
@@ -381,8 +385,8 @@ Invoke-RestMethod http://127.0.0.1:45871/status | ConvertTo-Json -Depth 6
 | `assets\notify.wav` | встроенный звук завершения |
 | `start-widget.vbs` | запуск без окна консоли |
 | `install.ps1` | ярлыки в «Пуск»/на рабочем столе, автозапуск |
-| `release.ps1` | сборка `dsh-widget-1.0.4.zip` без личных данных |
-| `build-installer.ps1`, `installer.iss` | сборка `dist\DSHWidget-Setup-1.0.4.exe` (нужен Inno Setup) |
+| `release.ps1` | сборка `dsh-widget-1.0.5.zip` без личных данных |
+| `build-installer.ps1`, `installer.iss` | сборка `dist\DSHWidget-Setup-1.0.5.exe` (нужен Inno Setup) |
 | `plugin-src\`, `plugin\` | служебный плагин-мостик `dsh-widget-bridge` |
 | `tools\status.ps1` | человекочитаемый статус движка |
 | `tools\test-subagents.js` | тест логики субагентов на синтетическом DSH_HOME |
@@ -416,7 +420,7 @@ powershell -ExecutionPolicy Bypass -File .\release.ps1 -Version 1.0
 powershell -ExecutionPolicy Bypass -File .\tools\audit-release.ps1
 
 # установщик
-powershell -ExecutionPolicy Bypass -File .\build-installer.ps1 -Version 1.0.4
+powershell -ExecutionPolicy Bypass -File .\build-installer.ps1 -Version 1.0.5
 ```
 
 В архив/репозиторий не должны попадать `config.json`, логи, `selftest-*.png`, `dist/`, `_backup/`.
@@ -446,7 +450,7 @@ git config --global user.email "<email>"
 
 git init -b main
 git add .
-git commit -m "DSH Widget 1.0.4"
+git commit -m "DSH Widget 1.0.5"
 ```
 
 Создайте на GitHub пустой репозиторий `dsh-widget`, затем:
@@ -459,10 +463,10 @@ git push -u origin main
 Публикация запускается тегом версии:
 
 ```powershell
-git tag -a v1.0.4 -m "DSH Widget 1.0.4"
-git push origin v1.0.4
+git tag -a v1.0.5 -m "DSH Widget 1.0.5"
+git push origin v1.0.5
 ```
 
-`.github/workflows/release.yml` соберёт `dsh-widget-1.0.4.zip`, `DSHWidget-Setup-1.0.4.exe` и
+`.github/workflows/release.yml` соберёт `dsh-widget-1.0.5.zip`, `DSHWidget-Setup-1.0.5.exe` и
 `SHA256SUMS.txt`, затем создаст GitHub Release. Вручную прикреплять файлы и ставить `gh` не нужно.
 CI-проверка запускает тесты движка и проверку кодировки при каждом push.

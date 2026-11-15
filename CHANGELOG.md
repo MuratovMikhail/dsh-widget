@@ -2,6 +2,20 @@
 
 # Changelog
 
+## 1.0.5 — 2026-11-15
+
+### Fixed
+
+- Settings no longer lose the “With DeepSeek Harness” mode: `Get-DshHome` used the read-only automatic `$HOME` variable as a loop variable and returned the user profile instead of the found DSH home.
+- The installer now always shows the installation directory page; the default remains `%LOCALAPPDATA%\Programs\DSH Widget`.
+- First install before DSH has ever been opened no longer silently degrades to manual mode. A background finisher waits for the first DSH profile, installs the bridge after DSH closes, and switches `launchMode` to `plugin`. The setup is also retried after a reboot through `RunOnce`.
+
+### Verified
+
+- Fresh profile: installer exits 0, widget is installed, then the finisher installs the bridge after the profile appears.
+- Existing profile: the plugin is installed immediately.
+- Settings shows the plugin mode when the bridge is present.
+
 ## 1.0.4 — 2026-11-15
 
 ### Fixed

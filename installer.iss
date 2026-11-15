@@ -4,7 +4,7 @@
 
 #define AppName "DSH Widget"
 #ifndef AppVersion
-  #define AppVersion "1.0.4"
+  #define AppVersion "1.0.5"
 #endif
 #define AppPublisher "DSH Widget"
 #define AppId "{{B7E1C0D4-5A62-4F0B-9A3E-2D7C6B1F0A55}"
@@ -16,6 +16,7 @@ AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
 AppPublisher={#AppPublisher}
 DefaultDirName={localappdata}\Programs\DSH Widget
+DisableDirPage=no
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
@@ -61,6 +62,7 @@ Source: "locale\*.json"; DestDir: "{app}\locale"; Flags: ignoreversion
 Source: "tools\stop-widget.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
 Source: "tools\restart-widget.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
 Source: "tools\install-plugin.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
+Source: "tools\finish-plugin.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
 Source: "tools\remove-plugin.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
 Source: "tools\set-mode.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion
 Source: "plugin\dsh-widget-bridge-1.0.0.tgz"; DestDir: "{app}\plugin"; Flags: ignoreversion
@@ -82,6 +84,7 @@ Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Fil
 Type: files; Name: "{app}\widget.log"
 Type: files; Name: "{app}\runtime.json"
 Type: files; Name: "{app}\bridge-stderr.log"
+Type: files; Name: "{app}\finish-plugin.log"
 
 [Code]
 procedure Notify(const Text: String);
@@ -103,9 +106,11 @@ var
   ResultCode: Integer;
   Params: String;
   Mode: String;
+  StartPending: Boolean;
 begin
   if CurStep = ssPostInstall then
   begin
+    StartPending := False;
     if WizardIsTaskSelected('mode_plugin') then Mode := 'plugin'
     else if WizardIsTaskSelected('mode_startup') then Mode := 'startup'
     else Mode := 'manual';
@@ -123,6 +128,7 @@ begin
       begin
         Notify(ExpandConstant('{cm:PluginNoDsh}'));
         Mode := 'manual';
+        StartPending := True;
       end
       else if ResultCode <> 0 then
       begin
@@ -136,6 +142,16 @@ begin
     Params := '-NoProfile -ExecutionPolicy Bypass -File "' +
               ExpandConstant('{app}\tools\set-mode.ps1') + '" -Mode ' + Mode;
     Exec('powershell.exe', Params, '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+
+    // DSH ещё ни разу не открывали: профиля нет. Ждём первый запуск и
+    // закрытие DSH, затем ставим плагин и переключаем режим на plugin.
+    if StartPending then
+    begin
+      Params := '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' +
+                ExpandConstant('{app}\tools\finish-plugin.ps1') + '" -TimeoutSec 1800';
+      if not Exec('powershell.exe', Params, '', SW_HIDE, ewNoWait, ResultCode) then
+        Notify(ExpandConstant('{cm:PluginStartFail}'));
+    end;
   end;
 end;
 function InitializeSetup: Boolean;
@@ -193,8 +209,8 @@ english.SelectTasksLabel2=
 [CustomMessages]
 russian.PluginStartFail=Не удалось запустить установку плагина. Виджет будет работать отдельно;%nплагин можно поставить позже из папки программы.
 english.PluginStartFail=Could not start the plugin installer. The widget will run separately;%nyou can install the plugin later from the app folder.
-russian.PluginNoDsh=Плагин не установлен: профиль DeepSeek Harness не найден.%nВиджет установлен; запустите DSH один раз и запустите установщик ещё раз, чтобы включить автозапуск.
-english.PluginNoDsh=The plugin wasn't installed: the DeepSeek Harness profile was not found.%nThe widget is installed; start DSH once and run the installer again to enable autostart.
+russian.PluginNoDsh=Профиль DeepSeek Harness ещё не создан.%nВиджет установлен. Запустите DSH один раз и закройте его — плагин и режим «вместе с DSH» включатся автоматически.
+english.PluginNoDsh=The DeepSeek Harness profile does not exist yet.%nThe widget is installed. Start DSH once and close it — the plugin and “with DSH” mode will be enabled automatically.
 russian.PluginInstallCode=Плагин не установлен, код:
 english.PluginInstallCode=The plugin wasn't installed, code:
 russian.NodeMissing=DeepSeek Harness не найден: нет node.exe в его каталоге.%nВиджет установится, но запустится только после установки DeepSeek Harness.

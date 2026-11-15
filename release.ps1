@@ -34,6 +34,7 @@ $files = @(
     'tools\restart-widget.ps1',
     'plugin\dsh-widget-bridge-1.0.0.tgz',
     'tools\install-plugin.ps1',
+    'tools\finish-plugin.ps1',
     'tools\remove-plugin.ps1',
     'README.md',
     'README.ru.md',
