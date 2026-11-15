@@ -8,14 +8,21 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $here 'dsh-common.ps1')
+
 $app = (Resolve-Path -LiteralPath $AppDir).Path
 $pending = Join-Path $app 'pending-plugin.json'
 $runOnceKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce'
 $runOnceName = 'DshWidgetFinishPlugin'
 $finishScript = Join-Path $app 'tools\finish-plugin.ps1'
 $installScript = Join-Path $app 'tools\install-plugin.ps1'
+$setModeScript = Join-Path $app 'tools\set-mode.ps1'
 $removeScript = Join-Path $app 'tools\remove-plugin.ps1'
 $log = Join-Path $app 'cancel-plugin.log'
+
+# Останавливать можно только скрипты этой установки: сравнение по полному пути,
+# одноимённые скрипты из других каталогов и копий программы остаются жить.
+$ownedScripts = @($finishScript, $installScript, $setModeScript)
 
 function Write-CancelLog([string]$text) {
     try { Add-Content -LiteralPath $log -Value ((Get-Date).ToString('s') + ' ' + $text) -Encoding UTF8 } catch { }
@@ -26,15 +33,21 @@ function Remove-PendingState {
     try { Remove-ItemProperty -Path $runOnceKey -Name $runOnceName -ErrorAction SilentlyContinue } catch { }
 }
 
+function Test-OwnedScriptProcess([string]$commandLine) {
+    if (-not $commandLine) { return $false }
+    $text = $commandLine.Replace('/', '\')
+    foreach ($scriptPath in $ownedScripts) {
+        if (-not $scriptPath) { continue }
+        if ($text.IndexOf($scriptPath.Replace('/', '\'), [StringComparison]::OrdinalIgnoreCase) -ge 0) { return $true }
+    }
+    return $false
+}
+
 function Stop-FinisherProcesses {
     $me = $PID
     for ($i = 0; $i -lt 3; $i++) {
         $procs = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
-            $_.ProcessId -ne $me -and $_.CommandLine -and (
-                ($_.CommandLine -match 'finish-plugin\.ps1') -or
-                ($_.CommandLine -match 'install-plugin\.ps1') -or
-                ($_.CommandLine -match 'set-mode\.ps1')
-            )
+            $_.ProcessId -ne $me -and (Test-OwnedScriptProcess $_.CommandLine)
         })
         if ($procs.Count -eq 0) { return }
         foreach ($p in $procs) {
@@ -45,8 +58,10 @@ function Stop-FinisherProcesses {
 }
 
 function Test-BridgePresent {
-    $dshHome = $env:DSH_HOME
-    if (-not $dshHome) { $dshHome = Join-Path $env:USERPROFILE '.dsh' }
+    # Общее обнаружение DSH: переменная окружения, профиль пользователя,
+    # портативная/нестандартная установка и запись деинсталлятора.
+    $dshHome = Get-DshHome
+    if (-not $dshHome) { return $false }
     $manifest = Join-Path (Join-Path (Join-Path $dshHome 'profiles') 'desktop') 'package.json'
     if (-not (Test-Path -LiteralPath $manifest)) { return $false }
     try {

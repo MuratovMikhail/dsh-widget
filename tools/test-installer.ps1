@@ -178,6 +178,18 @@ function Switch-Mode([string]$label, [string]$task, [string]$expectedMode, [bool
 }
 
 try {
+    # 0. Тесты отмены плагина: обнаружение нестандартного DSH и посторонние процессы.
+    Write-Step 'тесты отмены плагина'
+    $cancelTest = Join-Path $scriptDir 'test-cancel-plugin.ps1'
+    if (Test-Path -LiteralPath $cancelTest) {
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $cancelTest -WorkRoot (Join-Path $WorkRoot 'cancel-test')
+        $cancelCode = $LASTEXITCODE
+        Check 'cancel-pending-plugin: тесты' ($cancelCode -eq 0) ('код=' + $cancelCode)
+        if ($cancelCode -gt 1) { $fail += ($cancelCode - 1) }
+    } else {
+        Check 'test-cancel-plugin.ps1 найден' $false
+    }
+
     $env:DSH_HOME = $dshHome
     Write-Output ('установщик: ' + $Exe)
     Write-Output ('ожидаемая версия: ' + $expectedVersion)
