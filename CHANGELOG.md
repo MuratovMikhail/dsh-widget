@@ -40,7 +40,7 @@
 
 - The tray icon is a single static branded "D"; the current state is shown in its tooltip.
 - Removed the duplicated state contact sheet and the tray previews with Russian labels from the English README.
-- README, privacy, code signing and Windows 10 notes were cleaned up; the unused empty-state preview was removed.
+- README, privacy, and Windows 10 notes were cleaned up; the unused empty-state preview was removed.
 
 ## 1.0.0 — 2026-11-14
 
