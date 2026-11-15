@@ -91,6 +91,7 @@ Type: files; Name: "{app}\widget.log"
 Type: files; Name: "{app}\runtime.json"
 Type: files; Name: "{app}\bridge-stderr.log"
 Type: files; Name: "{app}\finish-plugin.log"
+Type: files; Name: "{app}\cancel-plugin.log"
 Type: files; Name: "{app}\pending-plugin.json"
 Type: files; Name: "{localappdata}\DSH Widget\install-dir.txt"
 
