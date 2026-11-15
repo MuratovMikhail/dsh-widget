@@ -2,6 +2,17 @@
 
 # Changelog
 
+## 1.0.10 — 2026-11-15
+
+### Fixed
+
+- `cancel-pending-plugin.ps1` no longer treats an unreadable DSH profile as "bridge absent". The profile state is `present`/`absent`/`unknown`, and an unknown state fails the cancellation instead of reporting success. The `remove-plugin.ps1` exit code is written to the log and included in the failure message.
+- Cancellation stops the whole process tree of this installation: `install-plugin.ps1` runs the DSH CLI through `cmd.exe`, and that command (with its `node.exe` child) could finish the install after the parent PowerShell was killed. Orphaned installer commands that still reference `<app>\plugin` are stopped too.
+
+### Tests
+
+- `tools/test-cancel-plugin.ps1` covers an unreadable `package.json`, a delayed install through `cmd.exe`, and an orphaned installer command. All three fail against the previous implementation.
+
 ## 1.0.9 — 2026-11-15
 
 ### Fixed
