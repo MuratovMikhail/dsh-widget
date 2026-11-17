@@ -1,4 +1,4 @@
-﻿[English](README.md) · [Русский](README.ru.md) · **简体中文**
+[English](README.md) · [Русский](README.ru.md) · **简体中文**
 
 [![CI](https://github.com/MuratovMikhail/dsh-widget/actions/workflows/ci.yml/badge.svg)](https://github.com/MuratovMikhail/dsh-widget/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/MuratovMikhail/dsh-widget)](https://github.com/MuratovMikhail/dsh-widget/releases/latest)
@@ -30,7 +30,7 @@
 - **等待回答**：状态为“等待你的回答”，并显示问题原文：“把更改提交到哪里？”。
 - **确认**：如果 DSH 请求权限，组件会显示“等待确认”以及工具名称。
 - **完成与错误**：显示“完成”并预览回答（3 分钟），或显示带红点的“已停止”（如果回合因错误结束）。错误不会因为 DSH 窗口曾获得焦点而消失：它会一直保留到你点击该区块，或直到 `doneVisibleSec` 到期。
-- **子代理**：如果父回合已结束但子会话仍在运行，组件不会显示“完成”，而是显示“子代理正在工作”、子代理数量，以及最新一个子代理正在做什么。
+- **子代理**：当智能体委派任务时，卡片显示“子代理正在工作”，并在会话下方列出最多三个子代理：运行中的带呼吸点（主题色），已完成的带绿色点。即使父智能体忙于自己的步骤，运行中的数量也始终可见。
 - **余额**：顶栏中的可选金额；低于 5 个单位时以琥珀色高亮。
 - **完成提示音**：轻柔的声音；出错时播放系统错误提示音。没有弹窗。
 - **托盘图标**：带菜单；图标固定，状态显示在提示中。
@@ -43,7 +43,7 @@
 | 正在工作 | Windows 强调色旋转指示器、回合时间、工具详情 |
 | 等待回答 | 琥珀色脉冲圆点、问题文本 |
 | 等待确认 | 琥珀色圆点、工具和原因 |
-| 子代理正在工作 | 紫色旋转指示器、数量以及最新子代理在做什么 |
+| 子代理正在工作 | 紫色旋转指示器、运行中的数量，以及每个子代理一行（呼吸点 — 运行中，绿色 — 已完成） |
 | 完成 | 带柔和光晕的绿色圆点、回答预览（默认 3 分钟） |
 | 错误 | 带光晕的红色圆点、“已停止”、预览/原因 |
 | 空闲 / 离线 | 灰色圆点、“没有活动任务”或“引擎未连接” |
@@ -62,7 +62,7 @@
 
 ### 安装程序（推荐）
 
-`DSHWidget-Setup-1.0.10.exe`（约 3 MB），无需管理员权限，会安装到 `%LOCALAPPDATA%\Programs\DSH Widget`。
+`DSHWidget-Setup-1.0.11.exe`（约 3 MB），无需管理员权限，会安装到 `%LOCALAPPDATA%\Programs\DSH Widget`。
 
 1. 运行安装程序；如果出现 SmartScreen“未知发布者”警告，请依次点击“更多信息”→“仍要运行”（该文件未使用证书签名）。
 2. 选择安装文件夹（默认 `%LOCALAPPDATA%\Programs\DSH Widget`）、启动模式（见下文），如有需要，可勾选创建桌面快捷方式。
@@ -317,8 +317,8 @@ Invoke-RestMethod http://127.0.0.1:45871/status | ConvertTo-Json -Depth 6
 | `assets\notify.wav` | 内置完成提示音 |
 | `start-widget.vbs` | 无控制台窗口启动 |
 | `install.ps1` | 创建“开始”菜单和桌面快捷方式、开机启动 |
-| `release.ps1` | 构建 `dsh-widget-1.0.10.zip`，不含个人数据 |
-| `build-installer.ps1`, `installer.iss` | 构建 `dist\DSHWidget-Setup-1.0.10.exe`（需要 Inno Setup） |
+| `release.ps1` | 构建 `dsh-widget-1.0.11.zip`，不含个人数据 |
+| `build-installer.ps1`, `installer.iss` | 构建 `dist\DSHWidget-Setup-1.0.11.exe`（需要 Inno Setup） |
 | `plugin-src\`, `plugin\` | 辅助桥接插件 `dsh-widget-bridge` |
 | `tools\status.ps1` | 便于阅读的引擎状态 |
 | `tools\test-subagents.js` | 在合成 DSH_HOME 上测试子代理逻辑 |
@@ -352,7 +352,7 @@ powershell -ExecutionPolicy Bypass -File .\release.ps1 -Version 1.0
 powershell -ExecutionPolicy Bypass -File .\tools\audit-release.ps1
 
 # 安装程序
-powershell -ExecutionPolicy Bypass -File .\build-installer.ps1 -Version 1.0.10
+powershell -ExecutionPolicy Bypass -File .\build-installer.ps1 -Version 1.0.11
 ```
 
 
@@ -378,7 +378,7 @@ git config --global user.email "<email>"
 
 git init -b main
 git add .
-git commit -m "DSH Widget 1.0.10"
+git commit -m "DSH Widget 1.0.11"
 ```
 
 在 GitHub 上创建一个名为 `dsh-widget` 的空仓库，然后：
@@ -391,10 +391,10 @@ git push -u origin main
 推送版本标签即可自动发布：
 
 ```powershell
-git tag -a v1.0.10 -m "DSH Widget 1.0.10"
-git push origin v1.0.10
+git tag -a v1.0.11 -m "DSH Widget 1.0.11"
+git push origin v1.0.11
 ```
 
-`.github/workflows/release.yml` 会构建 `dsh-widget-1.0.10.zip`、`DSHWidget-Setup-1.0.10.exe` 和
+`.github/workflows/release.yml` 会构建 `dsh-widget-1.0.11.zip`、`DSHWidget-Setup-1.0.11.exe` 和
 `SHA256SUMS.txt`，然后创建 GitHub Release。无需手动上传文件，也不需要 `gh`。
 CI 会在每次 push 时运行引擎测试和编码检查。

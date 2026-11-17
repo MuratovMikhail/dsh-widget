@@ -126,6 +126,54 @@ async function main() {
       !!finished.lastCompletion && /Запустил два прохода/.test(finished.lastCompletion.preview),
       'в превью — ответ родительской сессии'
     )
+
+    // Родитель сам ещё работает и ждёт субагента (wait_agent): карточка должна
+    // знать, кто именно работает, — ярлык берётся из subagent/catalog.
+    const waitingId = 'session-parent-waiting'
+    const child2 = 'child-test-2'
+    appendRecords('session-parent-waiting', [
+      { type: 'session', version: 4, id: waitingId, createdAt: now - 40000, cwd: 'C:\\test', delegationDepth: 0 },
+      { type: 'session/title', seq: 1, time: now - 39000, data: { title: 'Мониторинг скорости' } },
+      { type: 'turn/start', seq: 2, time: now - 38000, data: { turn: 1 } },
+      { type: 'step/start', seq: 3, time: now - 37000, data: { turn: 1, step: 1 } },
+      { type: 'subagent/catalog', seq: 4, time: now - 36000, data: { childId: child2, mode: 'continuable', label: 'Требования: монитор скорости в трее', name: 'analyst' } },
+      { type: 'tool/call', seq: 5, time: now - 35000, data: { turn: 1, step: 2, callId: 'w1', name: 'wait_agent', arguments: '{"timeout_ms":600000}' } },
+    ])
+    appendRecords('child-test-2', [
+      { type: 'session', version: 4, id: child2, createdAt: now - 34000, cwd: 'C:\\test', parentSession: waitingId, origin: 'subagent', delegationDepth: 1 },
+      { type: 'turn/start', seq: 1, time: now - 33000, data: { turn: 1 } },
+      { type: 'step/start', seq: 2, time: Date.now() - 1500, data: { turn: 1, step: 2 } },
+      { type: 'tool/call', seq: 3, time: Date.now() - 900, data: { turn: 1, step: 2, callId: 'c10', name: 'pwsh', arguments: '{"description":"Снимает показания интерфейса"}' } },
+    ])
+
+    const waiting = await waitFor(
+      (s) => s.primary && s.primary.id === waitingId && s.primary.status === 'working' && s.primary.subagents.active === 1,
+      8000,
+      'ожидался working-родитель с активным субагентом'
+    )
+    check(waiting.primary.status === 'working', 'родитель в wait_agent остаётся working')
+    check(waiting.primary.activity.tool === 'wait_agent', `инструмент ожидания виден движку (получено ${waiting.primary.activity.tool})`)
+    check(!!waiting.primary.subagents.items && waiting.primary.subagents.items.length === 1, 'в снимке есть список работающих субагентов')
+    const item = (waiting.primary.subagents.items && waiting.primary.subagents.items[0]) || {}
+    check(item.title === 'Требования: монитор скорости в трее', `ярлык субагента из subagent/catalog (получено ${item.title})`)
+    check(/Снимает показания/.test(String(item.detail)), `в строке субагента — его занятие (получено ${item.detail})`)
+    check(item.done === false, 'работающий субагент помечен как незавершённый')
+
+    // Субагент закончил работу, родитель всё ещё ждёт: строка остаётся, но становится завершённой.
+    appendRecords('child-test-2', [
+      { type: 'assistant/message', seq: 4, time: Date.now() - 400, data: { turn: 1, step: 2, message: { role: 'assistant', content: [{ type: 'text', text: 'Показания сняты.' }] } } },
+      { type: 'turn/end', seq: 5, time: Date.now(), data: { turn: 1, reason: { kind: 'completed' } } },
+    ])
+    const childDone = await waitFor(
+      (s) => s.primary && s.primary.id === waitingId && !!s.primary.subagents.items &&
+        s.primary.subagents.items.some((x) => x.done === true),
+      8000,
+      'ожидалась отметка завершённого субагента'
+    )
+    const doneItem = (childDone.primary.subagents.items || []).find((x) => x.done === true) || {}
+    check(doneItem.title === 'Требования: монитор скорости в трее', 'завершённый субагент остался в списке с ярлыком')
+    check(childDone.primary.subagents.active === 0, 'активных субагентов больше нет, а завершённый виден')
+    check(childDone.primary.subagents.done === 1, `счётчик завершённых субагентов = 1 (получено ${childDone.primary.subagents.done})`)
   } finally {
     engine.kill()
     await sleep(300)
