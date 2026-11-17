@@ -31,7 +31,7 @@ $ErrorActionPreference = 'Stop'
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $script:configPath = Join-Path $scriptDir 'config.json'
 $script:enginePath = Join-Path $scriptDir 'widget-engine.js'
-$script:appVersion = '1.0.10'
+$script:appVersion = '1.0.11'
 $versionFile = Join-Path $scriptDir 'VERSION'
 if (Test-Path -LiteralPath $versionFile) {
     try {
@@ -687,6 +687,7 @@ $script:formStart = $null
 $script:cardVisible = $true
 $script:manualShow = $false
 $script:rows = @()
+$script:cardExtra = 0
 $script:overflowCount = 0
 $script:projectLabel = 'DSH'
 $script:viewKey = ''
@@ -699,6 +700,8 @@ $CARD_H = 92
 $HEADER_H = 26
 $BLOCK_H = 58
 $FOOTER_H = 14
+# Дополнительная строка субагента под блоком сессии.
+$SUB_LINE_H = 16
 
 # ------------------------------------------------------------------ текст
 
@@ -715,6 +718,13 @@ function Get-SessionTextRaw($s) {
     $act = $s.activity
     switch ([string]$s.status) {
         'working' {
+            $subCount = 0
+            if ($s.subagents) { $subCount = [int]$s.subagents.active }
+            # Родитель ждёт субагентов: так и говорим, а ниже покажем, кто именно работает.
+            if ($act.kind -eq 'tool' -and $act.tool -eq 'wait_agent' -and $subCount -gt 0) {
+                return @{ status = (T 'Работают субагенты'); detail = (Get-SubagentDetail $s); state = 'subagents' }
+            }
+            $texts = $null
             if ($act.kind -eq 'tool') {
                 $verb = switch ($act.tool) {
                     'pwsh' { 'Выполняет команду' }
@@ -729,31 +739,36 @@ function Get-SessionTextRaw($s) {
                     'web_fetch' { 'Открывает страницу' }
                     'subagent' { 'Запустил субагента' }
                     'subagent_fork' { 'Запустил субагента' }
+                    'wait_agent' { 'Ждёт субагента' }
                     'present' { 'Готовит результат' }
                     'todo_write' { 'Обновляет план' }
                     'workflow' { 'Выполняет сценарий' }
                     'skill' { 'Загружает навык' }
                     default { 'Работает' }
                 }
-                return @{ status = (T $verb); detail = [string]$act.detail; state = 'working' }
+                $texts = @{ status = (T $verb); detail = [string]$act.detail; state = 'working' }
             }
-            if ($act.kind -eq 'question' -or $act.kind -eq 'approval') {
+            elseif ($act.kind -eq 'question' -or $act.kind -eq 'approval') {
                 # Страховка для старых снимков: статус ещё working, но агент уже ждёт.
-                return (Get-WaitingText $act)
+                $texts = Get-WaitingText $act
             }
-            if ($act.kind -eq 'thinking') { return @{ status = (T 'Думает…'); detail = ''; state = 'working' } }
-            return @{ status = (T 'Думает…'); detail = ''; state = 'working' }
+            else {
+                $texts = @{ status = (T 'Думает…'); detail = ''; state = 'working' }
+            }
+            # Субагенты работают в фоне: их число видно и тогда, когда родитель занят
+            # своим делом, и когда все они уже завершились.
+            $countText = Get-SubagentDetail $s
+            if ($countText) {
+                if ($texts.detail) { $texts.detail = $countText + ' · ' + $texts.detail }
+                else { $texts.detail = $countText }
+            }
+            return $texts
         }
         'waiting' { return (Get-WaitingText $act) }
         'subagents' {
             $n = 0
             if ($s.subagents) { $n = [int]$s.subagents.active }
-            $word = Get-SubagentWord $n
-            $detail = "$n $word"
-            if ($s.subagents -and $s.subagents.top -and $s.subagents.top.detail) {
-                $detail = "$n $word · " + $s.subagents.top.detail
-            }
-            return @{ status = (T 'Работают субагенты'); detail = $detail; state = 'subagents' }
+            return @{ status = (T 'Работают субагенты'); detail = (Get-SubagentDetail $s); state = 'subagents' }
         }
         'done' {
             $preview = ''
@@ -885,6 +900,24 @@ function Draw-FilledDot($g, [single]$cx, [single]$cy, $color, [single]$r) {
     $brush.Dispose()
 }
 
+# Точка субагента: завершённый — статичная зелёная, работающий — пульсирует цветом акцента.
+function Draw-SubDot($g, [single]$cx, [single]$cy, $color, [bool]$done) {
+    if (-not $done) {
+        # Пульс в два раза быстрее, чем у индикатора ожидания: строк субагентов много,
+        # и медленное дыхание на них читается как «замерло».
+        $phase = 0.5 + 0.5 * [math]::Sin($script:anim / 4.0)
+        $halo = [System.Drawing.Color]::FromArgb([int](40 + 60 * $phase), $color.R, $color.G, $color.B)
+        $haloBrush = New-Object System.Drawing.SolidBrush($halo)
+        $g.FillEllipse($haloBrush, [single]($cx - 5.5), [single]($cy - 5.5), [single]11, [single]11)
+        $haloBrush.Dispose()
+    }
+    $r = 2.5
+    if ($done) { $r = 3 }
+    $brush = New-Object System.Drawing.SolidBrush($color)
+    $g.FillEllipse($brush, [single]($cx - $r), [single]($cy - $r), [single]($r * 2), [single]($r * 2))
+    $brush.Dispose()
+}
+
 function Get-VisibleSessions {
     $snap = $script:snap
     if (-not $snap) { return @() }
@@ -932,6 +965,16 @@ function Update-ViewCache {
             $state = [string]$texts.state
             $plan = ''
             if ($state -in @('working', 'waiting', 'subagents')) { $plan = Get-PlanChip $s }
+            # Строки субагентов: работающие сверху, завершённые — ниже, с зелёной точкой.
+            # После завершения хода они не нужны: блок «Готово» и так говорит, что всё закончилось.
+            $sub = @()
+            if ($state -in @('working', 'waiting', 'subagents') -and $s.subagents -and $s.subagents.items) {
+                foreach ($it in @($s.subagents.items | Select-Object -First 3)) {
+                    $line = [string]$it.title
+                    if (-not $it.done -and $it.detail) { $line = $line + ' · ' + [string]$it.detail }
+                    $sub += [pscustomobject]@{ text = $line; done = [bool]$it.done }
+                }
+            }
             $rows += [pscustomobject]@{
                 index   = $i
                 session = $s
@@ -941,10 +984,17 @@ function Update-ViewCache {
                 detail  = [string]$texts.detail
                 state   = $state
                 plan    = $plan
+                sub     = $sub
             }
         }
     }
     $script:rows = $rows
+
+    # Высота карточки: базовые блоки плюс по строке на каждого показанного субагента.
+    $script:cardExtra = 0
+    foreach ($r in $rows) {
+        if ($r.sub) { $script:cardExtra += $SUB_LINE_H * @($r.sub).Count }
+    }
 
     $active = 0
     if ($snap -and $null -ne $snap.activeCount) { $active = [int]$snap.activeCount }
@@ -969,23 +1019,36 @@ function Get-ViewKey {
         $parts += ([string]$snap.balance.enabled + ':' + [string]$snap.balance.amount + ':' + [string]$snap.balance.ok)
     }
     foreach ($r in $script:rows) {
-        $parts += ($r.title + '|' + $r.meta + '|' + $r.status + '|' + $r.detail + '|' + $r.state + '|' + $r.plan)
+        $parts += ($r.title + '|' + $r.meta + '|' + $r.status + '|' + $r.detail + '|' + $r.state + '|' + $r.plan + '|' + ((@($r.sub) | ForEach-Object { $_.text + ':' + $_.done }) -join ';'))
     }
     return ($parts -join "`n")
 }
 
 function Get-CardHeight([int]$count, [int]$overflow) {
     if ($count -lt 1) { $count = 1 }
-    $height = $HEADER_H + ($count * $BLOCK_H) + 8
+    $height = $HEADER_H + ($count * $BLOCK_H) + $script:cardExtra + 8
     if ($overflow -gt 0) { $height += $FOOTER_H + 4 }
     return $height
+}
+
+# Высота одного блока сессии: базовые 58 плюс строки субагентов под ним.
+function Get-RowHeight($row) {
+    $extra = 0
+    if ($row -and $row.sub) { $extra = $SUB_LINE_H * @($row.sub).Count }
+    return ($BLOCK_H + $extra)
 }
 
 # Индекс блока сессии под курсором (или $null, если мимо).
 function Get-SessionBlockIndex([int]$y, [int]$count) {
     if ($count -le 0 -or $y -lt $HEADER_H) { return $null }
-    $idx = [int][math]::Floor(($y - $HEADER_H) / $BLOCK_H)
-    if ($idx -ge 0 -and $idx -lt $count -and $y -lt ($HEADER_H + $count * $BLOCK_H - 2)) { return $idx }
+    $top = $HEADER_H
+    for ($i = 0; $i -lt $count; $i++) {
+        $row = $null
+        if ($i -lt $script:rows.Count) { $row = $script:rows[$i] }
+        $h = Get-RowHeight $row
+        if ($y -lt ($top + $h - 2)) { return $i }
+        $top += $h
+    }
     return $null
 }
 
@@ -1036,6 +1099,25 @@ function Get-SubagentWord([int]$n) {
     if ($mod10 -eq 1 -and $mod100 -ne 11) { return 'субагент' }
     if ($mod10 -ge 2 -and $mod10 -le 4 -and ($mod100 -lt 12 -or $mod100 -gt 14)) { return 'субагента' }
     return 'субагентов'
+}
+
+# Пояснение к субагентам: сколько работает и сколько уже завершилось в этом ходе.
+function Get-SubagentDetail($s) {
+    $active = 0
+    $done = 0
+    if ($s.subagents) {
+        $active = [int]$s.subagents.active
+        if ($null -ne $s.subagents.done) { $done = [int]$s.subagents.done }
+        elseif ($s.subagents.items) { $done = @($s.subagents.items | Where-Object { $_.done }).Count }
+    }
+    $parts = @()
+    if ($active -gt 0) { $parts += ("$active " + (Get-SubagentWord $active)) }
+    if ($done -gt 0) { $parts += (T 'завершено: {0}' $done) }
+    if (-not $parts.Count) {
+        if ($s.subagents -and $s.subagents.top -and $s.subagents.top.detail) { return [string]$s.subagents.top.detail }
+        return ''
+    }
+    return ($parts -join ' · ')
 }
 
 function Get-SessionWord([int]$n) {
@@ -1120,6 +1202,11 @@ function New-DemoSnapshot([string]$demoState) {
                 active = 2
                 total  = 3
                 top    = @{ title = (T 'Проверка формы'); kind = 'tool'; tool = 'pwsh'; detail = (T 'Прогоняет сценарии формы') }
+                items  = @(
+                    @{ id = 'child-demo-1'; title = (T 'Проверка формы'); kind = 'tool'; tool = 'pwsh'; detail = (T 'Прогоняет сценарии формы'); done = $false },
+                    @{ id = 'child-demo-2'; title = (T 'Аудит доступности'); kind = 'tool'; tool = 'read'; detail = 'checkout.html'; done = $false },
+                    @{ id = 'child-demo-3'; title = (T 'Проверка контрактов API'); kind = 'done'; tool = $null; detail = ''; done = $true }
+                )
             }
         }
         'idle' {
@@ -1319,16 +1406,30 @@ $form.Add_Paint({
     }
     Draw-Gear $g ([single]($gearBox.X + $gearBox.Width / 2)) ([single]($gearBox.Y + $gearBox.Height / 2)) 5.3 $gearColor
 
-    # блоки сессий — все одинаковые, без полосы «прогресса»
+    # блоки сессий — все одинаковые, без полосы «прогресса»;
+    # под блоком с работающими субагентами идут их строки
+    $rowTop = $HEADER_H
     for ($i = 0; $i -lt $rows.Count; $i++) {
-        Draw-Row $g $rows[$i] ($HEADER_H + $i * $BLOCK_H)
+        $row = $rows[$i]
+        Draw-Row $g $row $rowTop
+        if ($row.sub) {
+            $k = 0
+            foreach ($sub in @($row.sub)) {
+                $lineTop = $rowTop + $BLOCK_H + $k * $SUB_LINE_H
+                if ($sub.done) { $dotColor = $script:accentByState['done'] } else { $dotColor = $script:accentByState['working'] }
+                Draw-SubDot $g 38 ([single]($lineTop + 7)) $dotColor ([bool]$sub.done)
+                Draw-TextLine $g ([string]$sub.text) $script:fontDetail $script:clrMuted 48 $lineTop ($CARD_W - 62) 14 $false
+                $k++
+            }
+        }
+        $rowTop += (Get-RowHeight $row)
     }
 
     # подвал — только когда не все сессии поместились
     if ($script:overflowCount -gt 0 -and $rows.Count -eq $script:rows.Count) {
         $n = [int]$script:overflowCount
         $word = Get-SessionWord $n
-        Draw-TextLine $g (T 'ещё {0} {1}' $n $word) $script:fontLabel $script:clrMuted 16 ($HEADER_H + $rows.Count * $BLOCK_H + 4) 220 14 $false
+        Draw-TextLine $g (T 'ещё {0} {1}' $n $word) $script:fontLabel $script:clrMuted 16 ($rowTop + 4) 220 14 $false
     }
 })
 

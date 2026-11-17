@@ -4,7 +4,7 @@
 
 #define AppName "DSH Widget"
 #ifndef AppVersion
-  #define AppVersion "1.0.10"
+  #define AppVersion "1.0.11"
 #endif
 #define AppPublisher "DSH Widget"
 #define AppId "{{B7E1C0D4-5A62-4F0B-9A3E-2D7C6B1F0A55}"

@@ -2,6 +2,21 @@
 
 # Changelog
 
+## 1.0.11 — 2026-11-17
+
+### Added
+
+- The card lists the subagents of the current turn under the session block: up to three lines, a pulsing dot in the accent colour for a working subagent and a green dot for a finished one. Labels come from the `subagent/catalog` event, so a line reads `analyst · Requirements check` instead of a generic "subagent".
+- The number of running subagents stays visible while the parent is busy with its own step, and finished ones are counted separately ("2 subagents · done: 1").
+
+### Changed
+
+- Subagent lines are hidden once the turn is done: the "Done" block stays compact, as before.
+
+### Tests
+
+- `tools/test-subagents.js` covers a parent waiting with `wait_agent`, labels from `subagent/catalog`, the finished-subagent marker and the done counter.
+
 ## 1.0.10 — 2026-11-15
 
 ### Fixed

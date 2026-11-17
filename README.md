@@ -1,4 +1,4 @@
-﻿**English** · [Русский](README.ru.md) · [简体中文](README.zh-CN.md) · [Website](https://muratovmikhail.github.io/dsh-widget/)
+**English** · [Русский](README.ru.md) · [简体中文](README.zh-CN.md) · [Website](https://muratovmikhail.github.io/dsh-widget/)
 
 [![CI](https://github.com/MuratovMikhail/dsh-widget/actions/workflows/ci.yml/badge.svg)](https://github.com/MuratovMikhail/dsh-widget/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/MuratovMikhail/dsh-widget)](https://github.com/MuratovMikhail/dsh-widget/releases/latest)
@@ -35,8 +35,9 @@ Author: **Mikhail Muratov**.
 - **Completion and error** — "Done" with a preview of the answer (3 minutes) or "Stopped" with a red dot
   if the turn ended with an error. An error does not disappear just because the DSH window was in focus: it stays
   until you click the block or `doneVisibleSec` expires.
-- **Subagents** — if the parent turn has finished but child sessions are still running, the widget does not say
-  "Done": it says "Subagents at work", shows their number and what the most recent one is doing.
+- **Subagents** — while the agent delegates, the card says "Subagents at work" and lists up to three subagents
+  under the session: a pulsing dot in the accent colour for each one working, a green dot for those already
+  finished. The number of running subagents stays visible even when the parent is busy with its own step.
 - **Balance** — an optional amount in the header; below 5 units it is highlighted in amber.
 - **Completion sound** — a quiet sound; on error the system error sound plays. There are no pop-up windows.
 - **Tray icon** with a menu; the icon is static and the current state is in its tooltip.
@@ -50,7 +51,7 @@ Widget states:
 | Working | spinner in the Windows accent color, turn time, tool detail |
 | Waiting for your answer | amber pulsing dot, the question text |
 | Waiting for approval | amber dot, the tool and the reason |
-| Subagents at work | purple spinner, the number and what the most recent one is doing |
+| Subagents at work | purple spinner, the number of running subagents and a line per subagent (pulsing dot — working, green — finished) |
 | Done | green dot with a soft halo, a preview of the answer (3 minutes by default) |
 | Error | red dot with a halo, "Stopped", preview/reason |
 | Idle / offline | gray dot, "No active tasks" or "Engine offline" |
@@ -95,7 +96,7 @@ The installer is currently unsigned. Verify the SHA-256 from the release page, t
 
 ### Installer (recommended)
 
-`DSHWidget-Setup-1.0.10.exe` (about 3 MB) — no administrator rights, installs to
+`DSHWidget-Setup-1.0.11.exe` (about 3 MB) — no administrator rights, installs to
 `%LOCALAPPDATA%\Programs\DSH Widget`.
 
 1. Run it; if SmartScreen warns "Unknown publisher", click "More info" → "Run anyway"
@@ -411,8 +412,8 @@ Invoke-RestMethod http://127.0.0.1:45871/status | ConvertTo-Json -Depth 6
 | `assets\notify.wav` | built-in completion sound |
 | `start-widget.vbs` | launches without a console window |
 | `install.ps1` | shortcuts in the Start menu and on the desktop, autostart |
-| `release.ps1` | builds `dsh-widget-1.0.10.zip` without personal data |
-| `build-installer.ps1`, `installer.iss` | builds `dist\DSHWidget-Setup-1.0.10.exe` (requires Inno Setup) |
+| `release.ps1` | builds `dsh-widget-1.0.11.zip` without personal data |
+| `build-installer.ps1`, `installer.iss` | builds `dist\DSHWidget-Setup-1.0.11.exe` (requires Inno Setup) |
 | `plugin-src\`, `plugin\` | the service bridge plugin `dsh-widget-bridge` |
 | `tools\status.ps1` | human-readable engine status |
 | `tools\test-subagents.js` | subagent logic test on a synthetic DSH_HOME |
@@ -448,7 +449,7 @@ powershell -ExecutionPolicy Bypass -File .\release.ps1 -Version 1.0
 powershell -ExecutionPolicy Bypass -File .\tools\audit-release.ps1
 
 # installer
-powershell -ExecutionPolicy Bypass -File .\build-installer.ps1 -Version 1.0.10
+powershell -ExecutionPolicy Bypass -File .\build-installer.ps1 -Version 1.0.11
 ```
 
 `config.json`, logs, `selftest-*.png`, `dist/`, `_backup/` must not end up in the archive/repository.
@@ -478,7 +479,7 @@ git config --global user.email "<email>"
 
 git init -b main
 git add .
-git commit -m "DSH Widget 1.0.10"
+git commit -m "DSH Widget 1.0.11"
 ```
 
 Create an empty repository `dsh-widget` on GitHub, then:
@@ -491,10 +492,10 @@ git push -u origin main
 Publishing is automatic on a version tag:
 
 ```powershell
-git tag -a v1.0.10 -m "DSH Widget 1.0.10"
-git push origin v1.0.10
+git tag -a v1.0.11 -m "DSH Widget 1.0.11"
+git push origin v1.0.11
 ```
 
-`.github/workflows/release.yml` builds `dsh-widget-1.0.10.zip`, `DSHWidget-Setup-1.0.10.exe`, and
+`.github/workflows/release.yml` builds `dsh-widget-1.0.11.zip`, `DSHWidget-Setup-1.0.11.exe`, and
 `SHA256SUMS.txt`, then creates the GitHub Release. No manual asset upload and no `gh` are needed.
 The CI workflow runs the engine tests and an encoding check on every push.

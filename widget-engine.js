@@ -23,7 +23,7 @@ const ZSTD_MAGIC = Buffer.from([0x28, 0xb5, 0x2f, 0xfd])
 const DONE_VISIBLE_MS = 3 * 60 * 1000      // сколько держим «готово» на карточке
 const STALE_MS = 30 * 60 * 1000            // ход без событий дольше — считаем брошенным
 const TICK_MS = 1000
-let VERSION = '1.0.10'
+let VERSION = '1.0.11'
 try {
   const v = fs.readFileSync(path.join(__dirname, 'VERSION'), 'utf8').trim()
   if (v) VERSION = v
@@ -284,6 +284,8 @@ function blankState(filePath) {
     todos: null,
     jobsRegistered: 0,
     jobsSettled: 0,
+    // Ярлыки субагентов из событий subagent/catalog: childId -> { label, name }.
+    subagentLabels: {},
     completions: 0,
     lastCompletion: null,
     pendingEnd: null,
@@ -508,6 +510,20 @@ function applyRecord(s, r) {
       // Отдельное событие плана (есть не во всех версиях): более надёжный источник, чем tool/call.
       const list = Array.isArray(d.todos) ? d.todos : null
       s.todos = todoCounts(list) || s.todos
+      break
+    }
+
+    case 'subagent/catalog': {
+      // Родитель записывает, кого именно породил: id дочерней сессии и человеческий ярлык.
+      // Без этого карточка знает только «субагент», а не «analyst · Проверка требований».
+      const childId = d.childId || d.id
+      if (childId) {
+        s.subagentLabels[childId] = {
+          label: d.label ? String(d.label) : '',
+          name: d.name ? String(d.name) : '',
+          mode: d.mode ? String(d.mode) : '',
+        }
+      }
       break
     }
 
@@ -745,19 +761,66 @@ function countActiveDescendants(id, childrenOf, now) {
   return collectActiveDescendants(id, childrenOf, now, new Set(), []).length
 }
 
-/** Самый свежий работающий субагент — чтобы показать, чем именно он занят. */
-function topActiveSubagent(id, childrenOf, now) {
-  const active = collectActiveDescendants(id, childrenOf, now, new Set(), [])
-  if (!active.length) return null
-  active.sort((a, b) => (b.lastEventAt || 0) - (a.lastEventAt || 0))
-  const k = active[0]
-  const act = describeActivity(k, 'working')
-  return {
-    title: clip(k.title || 'субагент', 70),
-    kind: act.kind,
-    tool: act.tool || null,
-    detail: act.detail || '',
+/** Ярлык субагента: из subagent/catalog родителя, иначе заголовок его сессии. */
+function subagentTitle(parent, child) {
+  const labels = (parent && parent.subagentLabels) || {}
+  const lab = labels[child.id] || null
+  const raw = (lab && (lab.label || lab.name)) || child.title || 'субагент'
+  return clip(String(raw), 70)
+}
+
+/** Сколько субагентов завершилось в текущем ходе родителя (без обрезки списка). */
+function doneSubagentCount(parent, childrenOf) {
+  const turnStartedAt = parent.turnStartedAt || 0
+  let n = 0
+  for (const k of childrenOf.get(parent.id) || []) {
+    if (!k || !k.id || k.status !== 'done') continue
+    if (!k.turnEndedAt || k.turnEndedAt < turnStartedAt) continue
+    n += 1
   }
+  return n
+}
+
+/** Работающие и недавно завершённые субагенты этой сессии — по пункту на каждого. */
+function subagentItems(parent, childrenOf, now, limit) {
+  const kids = collectActiveDescendants(parent.id, childrenOf, now, new Set(), [])
+  const activeIds = new Set(kids.map((k) => k.id))
+  const items = []
+  for (const k of kids) {
+    const act = describeActivity(k, 'working')
+    items.push({
+      id: k.id,
+      title: subagentTitle(parent, k),
+      kind: act.kind,
+      tool: act.tool || null,
+      detail: act.detail || '',
+      done: false,
+      at: k.lastEventAt || 0,
+    })
+  }
+  // Завершённые в этом же ходе: гасим их зелёной точкой, пока родитель ещё работает.
+  const turnStartedAt = parent.turnStartedAt || 0
+  for (const k of childrenOf.get(parent.id) || []) {
+    if (!k || !k.id || activeIds.has(k.id)) continue
+    if (k.status !== 'done') continue
+    if (!k.turnEndedAt || k.turnEndedAt < turnStartedAt) continue
+    items.push({
+      id: k.id,
+      title: subagentTitle(parent, k),
+      kind: 'done',
+      tool: null,
+      detail: '',
+      done: true,
+      at: k.turnEndedAt,
+    })
+  }
+  items.sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1
+    return (b.at || 0) - (a.at || 0)
+  })
+  const out = items.slice(0, limit || 3)
+  for (const it of out) delete it.at
+  return out
 }
 
 function lastActivityAt(s, childrenOf, now, seen) {
@@ -821,7 +884,9 @@ function toView(s, primary, ctx) {
   const { now, childrenOf } = ctx
   const activeKids = countActiveDescendants(s.id, childrenOf, now)
   const totalKids = (childrenOf.get(s.id) || []).length
-  const topKid = activeKids > 0 ? topActiveSubagent(s.id, childrenOf, now) : null
+  const kidItems = subagentItems(s, childrenOf, now, 3)
+  const topKid = kidItems.find((k) => !k.done) || null
+  const doneKids = doneSubagentCount(s, childrenOf)
 
   let status = s.status
   // Ход, о котором давно не было событий, брошен (приложение закрыли) — не выдаём его за работу.
@@ -851,7 +916,7 @@ function toView(s, primary, ctx) {
       registered: s.jobsRegistered,
       settled: s.jobsSettled,
     },
-    subagents: { active: activeKids, total: totalKids, top: topKid },
+    subagents: { active: activeKids, total: totalKids, done: doneKids, top: topKid, items: kidItems },
     delegationDepth: s.delegationDepth,
     done: status === 'done' && s.lastCompletion
       ? { at: completionAt(s.lastCompletion), ok: s.lastCompletion.ok, reason: s.lastCompletion.reason, preview: s.lastCompletion.preview, durationMs: s.lastCompletion.durationMs }
